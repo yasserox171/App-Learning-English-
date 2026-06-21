@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.exercises.models import Exercise
+
 from .models import (
     Lesson,
     LessonComponent,
@@ -58,11 +60,38 @@ class LessonAdmin(admin.ModelAdmin):
     inlines = [LessonComponentInline]
 
 
+# --- Inlines for editing a component's typed payload (master prompt §6) ----- #
+class VideoInline(admin.StackedInline):
+    model = Video
+    extra = 0
+    max_num = 1
+
+
+class TextBlockInline(admin.StackedInline):
+    model = TextBlock
+    extra = 0
+    max_num = 1
+
+
+class VocabularyItemInline(admin.TabularInline):
+    model = VocabularyItem
+    extra = 1
+    ordering = ("order",)
+
+
+class ExerciseInline(admin.TabularInline):
+    model = Exercise
+    extra = 1
+    fields = ("order", "template", "points", "content")
+    ordering = ("order",)
+
+
 @admin.register(LessonComponent)
 class LessonComponentAdmin(admin.ModelAdmin):
     list_display = ("lesson", "type", "order")
     list_filter = ("type",)
     ordering = ("lesson", "order")
+    inlines = [VideoInline, TextBlockInline, VocabularyItemInline, ExerciseInline]
 
 
 @admin.register(Video)

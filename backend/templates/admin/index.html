@@ -1,0 +1,46 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+
+{% block content %}
+{% if stats %}
+<div class="module" id="lms-stats">
+  <h2>{% trans "Platform statistics" %}</h2>
+  <table style="width:100%;">
+    <tr>
+      <td><strong>{{ stats.users_total }}</strong><br>Users</td>
+      <td><strong>{{ stats.students }}</strong><br>Students</td>
+      <td><strong>{{ stats.teachers }}</strong><br>Teachers</td>
+      <td><strong>{{ stats.admins }}</strong><br>Admins</td>
+    </tr>
+    <tr>
+      <td><strong>{{ stats.levels }}</strong><br>Levels</td>
+      <td><strong>{{ stats.units }}</strong><br>Units</td>
+      <td><strong>{{ stats.lessons }}</strong><br>Lessons</td>
+      <td><strong>{{ stats.exercises }}</strong><br>Exercises</td>
+    </tr>
+    <tr>
+      <td><strong>{{ stats.attempts }}</strong><br>Attempts</td>
+      <td><strong>{{ stats.certificates }}</strong><br>Certificates</td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+
+  <h3 style="margin-top:1em;">{% trans "Daily activity (attempts, last 7 days)" %}</h3>
+  {% if daily_activity %}
+  <table>
+    <thead><tr><th>Day</th><th>Attempts</th></tr></thead>
+    <tbody>
+      {% for row in daily_activity %}
+      <tr><td>{{ row.day }}</td><td>{{ row.count }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{% trans "No activity yet." %}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}

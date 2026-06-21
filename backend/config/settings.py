@@ -35,7 +35,8 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 # Applications
 # --------------------------------------------------------------------------- #
 DJANGO_APPS = [
-    "django.contrib.admin",
+    # Custom admin site with a stats dashboard (master prompt §6).
+    "apps.common.admin_config.LMSAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
