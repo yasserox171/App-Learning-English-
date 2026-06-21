@@ -9,8 +9,7 @@ from drf_spectacular.views import (
 )
 
 api_v1_patterns = [
-    # App routers are wired in as each phase lands.
-    # path("auth/", include("apps.users.urls")),        # Phase 2
+    path("auth/", include("apps.users.urls")),
     # path("", include("apps.content.urls")),           # Phase 3
     # path("exercises/", include("apps.exercises.urls")),  # Phase 4
     # path("progress/", include("apps.progress.urls")),    # Phase 5
