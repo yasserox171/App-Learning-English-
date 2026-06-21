@@ -15,4 +15,7 @@ PyJWT==2.8.0
 # API utilities
 django-cors-headers==4.3.1
 django-filter==24.2
-drf-spectacular==0.27.2
+
+# NOTE: drf-spectacular (API docs) is intentionally omitted — it pulls in
+# rpds-py which needs Rust to build on Termux. The app runs fine without it;
+# only the /api/v1/docs schema UI is unavailable. Settings/urls handle this.

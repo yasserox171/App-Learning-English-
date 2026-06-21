@@ -49,8 +49,17 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "django_filters",
-    "drf_spectacular",
 ]
+
+# drf-spectacular (API docs) is optional — it pulls in rpds-py which needs
+# Rust to build on some platforms (e.g. Termux). Include it only if installed.
+try:
+    import drf_spectacular  # noqa: F401
+
+    HAS_SPECTACULAR = True
+    THIRD_PARTY_APPS.append("drf_spectacular")
+except ImportError:
+    HAS_SPECTACULAR = False
 
 LOCAL_APPS = [
     "apps.common",
@@ -159,9 +168,11 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.common.exceptions.api_exception_handler",
 }
+
+if HAS_SPECTACULAR:
+    REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env("JWT_ACCESS_MINUTES")),
