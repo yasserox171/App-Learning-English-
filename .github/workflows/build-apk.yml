@@ -10,7 +10,7 @@ on:
       api_base_url:
         description: "Backend API base URL baked into the APK"
         required: true
-        default: "http://10.0.2.2:8000/api/v1"
+        default: "http://127.0.0.1:8000/api/v1"
   push:
     branches: ["claude/code-master-prompt-t3cu6t"]
     paths: ["mobile/**", ".github/workflows/build-apk.yml"]
@@ -44,7 +44,7 @@ jobs:
       - name: Build release APK
         run: |
           flutter build apk --release \
-            --dart-define=API_BASE_URL="${{ github.event.inputs.api_base_url || 'http://10.0.2.2:8000/api/v1' }}"
+            --dart-define=API_BASE_URL="${{ github.event.inputs.api_base_url || 'http://127.0.0.1:8000/api/v1' }}"
 
       - name: Rename APK
         run: cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/lms-student-app.apk
@@ -64,7 +64,7 @@ jobs:
           body: |
             Latest build of the LMS student app (debug/test build).
 
-            **Baked backend URL:** `${{ github.event.inputs.api_base_url || 'http://10.0.2.2:8000/api/v1' }}`
+            **Baked backend URL:** `${{ github.event.inputs.api_base_url || 'http://127.0.0.1:8000/api/v1' }}`
 
             > To target a real device, run the workflow with your public backend URL.
             > Enable "install from unknown sources" on the device before installing.

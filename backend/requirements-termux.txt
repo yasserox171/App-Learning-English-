@@ -1,0 +1,18 @@
+# Termux / on-phone setup — uses SQLite, no PostgreSQL driver needed.
+# (reportlab is omitted; it's only needed for certificate PDFs and is
+#  imported lazily, so everything else works without it.)
+
+Django==5.0.6
+djangorestframework==3.15.1
+
+# Config / env
+django-environ==0.11.2
+
+# Auth
+djangorestframework-simplejwt==5.3.1
+PyJWT==2.8.0
+
+# API utilities
+django-cors-headers==4.3.1
+django-filter==24.2
+drf-spectacular==0.27.2

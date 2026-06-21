@@ -71,6 +71,33 @@ python manage.py runserver
 
 ---
 
+## التشغيل على الهاتف عبر Termux (بدون حاسوب)
+
+لتجربة التطبيق بهاتف واحد فقط: شغّل الـbackend داخل **Termux** على نفس الهاتف،
+ويتصل به التطبيق عبر `http://127.0.0.1:8000`. يستخدم **SQLite** (لا حاجة لـPostgreSQL).
+
+1. ثبّت **Termux** من **F-Droid** (نسخة Google Play قديمة ومعطّلة).
+2. داخل Termux:
+   ```bash
+   pkg update -y && pkg install -y python git
+   git clone https://github.com/yasserox171/App-Learning-English-.git
+   cd App-Learning-English-/backend
+   bash termux_setup.sh
+   ```
+3. بعد انتهاء الإعداد، شغّل الخادم:
+   ```bash
+   . .venv/bin/activate
+   python manage.py runserver 127.0.0.1:8000
+   ```
+4. اترك Termux يعمل، وافتح تطبيق **lms-student-app.apk** (المبني برابط `127.0.0.1`).
+   - تسجيل دخول تجريبي: `student@lms.test` / `student12345`
+   - أو أنشئ حساباً جديداً (سيعمل الآن لأن الخادم متاح محلياً).
+
+> ملاحظة: الـAPK المنشور في صفحة Releases مبنيّ على هذا الرابط (`127.0.0.1:8000`)،
+> فهو متوافق مباشرة مع تشغيل Termux. لاستضافة عامة لاحقاً، أعد البناء برابطك العام.
+
+---
+
 ## التشغيل عبر Docker (اختياري)
 
 ```bash
