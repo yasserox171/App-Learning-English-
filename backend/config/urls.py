@@ -11,7 +11,7 @@ from drf_spectacular.views import (
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
     path("", include("apps.content.urls")),
-    # path("exercises/", include("apps.exercises.urls")),  # Phase 4
+    path("exercises/", include("apps.exercises.urls")),
     # path("progress/", include("apps.progress.urls")),    # Phase 5
 ]
 
