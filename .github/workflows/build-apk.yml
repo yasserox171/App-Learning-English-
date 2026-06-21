@@ -2,7 +2,8 @@ name: Build Android APK
 
 # Build a release APK on demand. Provide your public backend URL when you
 # run it (Actions tab → "Build Android APK" → Run workflow), or push to the
-# branch to build with the default.
+# branch to build with the default. Each build also publishes the APK to a
+# GitHub Release ("latest-apk") for a stable, direct download link.
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +14,9 @@ on:
   push:
     branches: ["claude/code-master-prompt-t3cu6t"]
     paths: ["mobile/**", ".github/workflows/build-apk.yml"]
+
+permissions:
+  contents: write  # needed to create/update the Release
 
 jobs:
   build-apk:
@@ -42,9 +46,27 @@ jobs:
           flutter build apk --release \
             --dart-define=API_BASE_URL="${{ github.event.inputs.api_base_url || 'http://10.0.2.2:8000/api/v1' }}"
 
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/lms-student-app.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: lms-student-app-release
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          path: mobile/build/app/outputs/flutter-apk/lms-student-app.apk
           if-no-files-found: error
+
+      - name: Publish APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: Latest Student APK
+          body: |
+            Latest build of the LMS student app (debug/test build).
+
+            **Baked backend URL:** `${{ github.event.inputs.api_base_url || 'http://10.0.2.2:8000/api/v1' }}`
+
+            > To target a real device, run the workflow with your public backend URL.
+            > Enable "install from unknown sources" on the device before installing.
+          files: mobile/build/app/outputs/flutter-apk/lms-student-app.apk
+          make_latest: true
