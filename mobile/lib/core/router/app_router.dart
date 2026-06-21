@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,8 +14,19 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/progress/progress_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  // Re-evaluate redirects whenever the auth state changes (e.g. after login),
+  // otherwise go_router won't notice and the user stays on the login screen.
+  final authChanged = ValueNotifier<bool>(
+    ref.read(authControllerProvider).isAuthenticated,
+  );
+  ref.listen(authControllerProvider, (prev, next) {
+    authChanged.value = next.isAuthenticated;
+  });
+  ref.onDispose(authChanged.dispose);
+
   return GoRouter(
     initialLocation: '/levels',
+    refreshListenable: authChanged,
     redirect: (context, state) {
       final authed = ref.read(authControllerProvider).isAuthenticated;
       final loggingIn =
