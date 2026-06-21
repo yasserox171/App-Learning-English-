@@ -12,7 +12,7 @@ api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
     path("", include("apps.content.urls")),
     path("exercises/", include("apps.exercises.urls")),
-    # path("progress/", include("apps.progress.urls")),    # Phase 5
+    path("", include("apps.progress.urls")),
 ]
 
 urlpatterns = [
