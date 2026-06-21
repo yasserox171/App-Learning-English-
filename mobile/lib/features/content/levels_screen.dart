@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/i18n/app_localizations.dart';
-import '../auth/auth_controller.dart';
 import 'data/content_repository.dart';
 
 class LevelsScreen extends ConsumerWidget {
