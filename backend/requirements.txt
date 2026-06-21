@@ -6,6 +6,9 @@ psycopg[binary]==3.1.19
 # Config / env
 django-environ==0.11.2
 
+# Time zone database (needed on minimal systems without system tz files)
+tzdata==2024.1
+
 # Auth
 djangorestframework-simplejwt==5.3.1
 PyJWT==2.8.0

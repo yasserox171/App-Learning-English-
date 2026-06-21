@@ -16,6 +16,10 @@ PyJWT==2.8.0
 django-cors-headers==4.3.1
 django-filter==24.2
 
+# Time zone database — Termux/Android has no system tz files, so Python's
+# zoneinfo fails ("No time zone found with key UTC") without this package.
+tzdata==2024.1
+
 # NOTE: drf-spectacular (API docs) is intentionally omitted — it pulls in
 # rpds-py which needs Rust to build on Termux. The app runs fine without it;
 # only the /api/v1/docs schema UI is unavailable. Settings/urls handle this.
