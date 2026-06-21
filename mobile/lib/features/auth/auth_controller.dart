@@ -1,8 +1,24 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/api_client.dart';
 import 'data/auth_repository.dart';
 import 'data/user.dart';
+
+String _describeError(Object e, String fallback) {
+  if (e is DioException) {
+    if (e.response != null) {
+      final data = e.response!.data;
+      if (data is Map && data['error'] != null) {
+        return '$fallback: ${data['error']['detail']}';
+      }
+      return '$fallback (HTTP ${e.response!.statusCode})';
+    }
+    // No response = could not reach the server.
+    return 'Cannot reach server. Check the backend URL and your connection.';
+  }
+  return fallback;
+}
 
 class AuthState {
   const AuthState({this.user, this.loading = false, this.error});
@@ -45,7 +61,7 @@ class AuthController extends StateNotifier<AuthState> {
       final user = await _repo.login(email, password);
       state = AuthState(user: user);
     } catch (e) {
-      state = AuthState(error: 'Login failed', loading: false);
+      state = AuthState(error: _describeError(e, 'Login failed'), loading: false);
     }
   }
 
@@ -65,7 +81,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
       state = AuthState(user: user);
     } catch (e) {
-      state = AuthState(error: 'Registration failed', loading: false);
+      state = AuthState(error: _describeError(e, 'Registration failed'), loading: false);
     }
   }
 
