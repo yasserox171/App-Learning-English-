@@ -104,10 +104,9 @@ DATABASES = {
 }
 
 # --------------------------------------------------------------------------- #
-# Custom user model — enabled in Phase 1 once apps.users.User exists.
-# Must be set BEFORE the first migration runs (no migrations yet in Phase 0).
+# Custom user model (master prompt §8)
 # --------------------------------------------------------------------------- #
-# AUTH_USER_MODEL = "users.User"
+AUTH_USER_MODEL = "users.User"
 
 # --------------------------------------------------------------------------- #
 # Password validation
