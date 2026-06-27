@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/app_localizations.dart';
+import '../../core/tts/tts_service.dart';
 import '../content/data/models.dart';
 import 'data/exercise_repository.dart';
 
@@ -20,6 +21,8 @@ class ExerciseView extends ConsumerStatefulWidget {
 class _ExerciseViewState extends ConsumerState<ExerciseView> {
   AttemptResult? _result;
   bool _submitting = false;
+
+  void _speak(String text) => ref.read(ttsServiceProvider).speak(text);
 
   Future<void> _submit(Map<String, dynamic> answer) async {
     setState(() => _submitting = true);
@@ -52,8 +55,11 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
     final Widget body;
     switch (ex.templateCode) {
       case 'multiple_choice':
-      case 'listening':
         body = _ChoiceExercise(content: ex.content, onSubmit: _submit);
+        break;
+      case 'listening':
+        body = _ListeningExercise(
+            content: ex.content, onSubmit: _submit, onSpeak: _speak);
         break;
       case 'true_false':
         body = _TrueFalseExercise(content: ex.content, onSubmit: _submit);
@@ -66,9 +72,6 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
         break;
       case 'reorder':
         body = _ReorderExercise(content: ex.content, onSubmit: _submit);
-        break;
-      case 'pronunciation':
-        body = _PronunciationExercise(content: ex.content, onSubmit: _submit);
         break;
       default:
         body = Text('Unsupported: ${ex.templateCode}');
@@ -150,23 +153,93 @@ class _TrueFalseExercise extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(content['statement'] ?? ''),
-        const SizedBox(height: 8),
+        Text(content['statement'] ?? '',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 16),
         Row(
           children: [
-            FilledButton(
-              onPressed: () => onSubmit({'answer': true}),
-              child: const Text('True'),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size.fromHeight(56),
+                ),
+                onPressed: () => onSubmit({'answer': true}),
+                icon: const Icon(Icons.check),
+                label: Text(t.t('tf_true')),
+              ),
             ),
             const SizedBox(width: 12),
-            OutlinedButton(
-              onPressed: () => onSubmit({'answer': false}),
-              child: const Text('False'),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade400,
+                  minimumSize: const Size.fromHeight(56),
+                ),
+                onPressed: () => onSubmit({'answer': false}),
+                icon: const Icon(Icons.close),
+                label: Text(t.t('tf_false')),
+              ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ListeningExercise extends StatefulWidget {
+  const _ListeningExercise({
+    required this.content,
+    required this.onSubmit,
+    required this.onSpeak,
+  });
+  final Map<String, dynamic> content;
+  final OnSubmit onSubmit;
+  final void Function(String) onSpeak;
+
+  @override
+  State<_ListeningExercise> createState() => _ListeningExerciseState();
+}
+
+class _ListeningExerciseState extends State<_ListeningExercise> {
+  int? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final options = (widget.content['options'] as List).cast<String>();
+    final audioText = (widget.content['audio_text'] ?? '') as String;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.content['question'] != null)
+          Text(widget.content['question'],
+              style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Center(
+          child: FilledButton.icon(
+            onPressed: audioText.isEmpty ? null : () => widget.onSpeak(audioText),
+            icon: const Icon(Icons.volume_up),
+            label: Text(t.t('play')),
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (int i = 0; i < options.length; i++)
+          RadioListTile<int>(
+            value: i,
+            groupValue: _selected,
+            title: Text(options[i]),
+            onChanged: (v) => setState(() => _selected = v),
+          ),
+        _SubmitButton(
+          onPressed: _selected == null
+              ? null
+              : () => widget.onSubmit({'selected_index': _selected}),
         ),
       ],
     );
@@ -184,16 +257,56 @@ class _FillBlankExercise extends StatefulWidget {
 
 class _FillBlankExerciseState extends State<_FillBlankExercise> {
   final _ctrl = TextEditingController();
+  String? _picked;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final sentence = (widget.content['sentence'] ?? '') as String;
+    final options = (widget.content['options'] as List?)?.cast<String>();
+
+    // Tappable word bank when options are provided; else fall back to typing.
+    if (options == null || options.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(sentence, style: Theme.of(context).textTheme.titleMedium),
+          TextField(controller: _ctrl),
+          _SubmitButton(
+            onPressed: () => widget.onSubmit({'answer': _ctrl.text}),
+          ),
+        ],
+      );
+    }
+
+    final filled = _picked == null
+        ? sentence
+        : sentence.replaceFirst('___', '〖${_picked!}〗');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.content['sentence'] ?? ''),
-        TextField(controller: _ctrl),
+        Text(filled, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Text(t.t('tap_word'), style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final w in options)
+              ChoiceChip(
+                label: Text(w, style: const TextStyle(fontSize: 16)),
+                selected: _picked == w,
+                onSelected: (_) =>
+                    setState(() => _picked = _picked == w ? null : w),
+              ),
+          ],
+        ),
         _SubmitButton(
-          onPressed: () => widget.onSubmit({'answer': _ctrl.text}),
+          onPressed: _picked == null
+              ? null
+              : () => widget.onSubmit({'answer': _picked}),
         ),
       ],
     );
@@ -296,26 +409,6 @@ class _ReorderExerciseState extends State<_ReorderExercise> {
           ),
         ),
         _SubmitButton(onPressed: () => widget.onSubmit({'order': _words})),
-      ],
-    );
-  }
-}
-
-class _PronunciationExercise extends StatelessWidget {
-  const _PronunciationExercise({required this.content, required this.onSubmit});
-  final Map<String, dynamic> content;
-  final OnSubmit onSubmit;
-
-  @override
-  Widget build(BuildContext context) {
-    // MVP: recording/audio analysis simplified (master prompt §9).
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Say: "${content['target_text']}"'),
-        _SubmitButton(
-          onPressed: () => onSubmit({'recorded': true}),
-        ),
       ],
     );
   }

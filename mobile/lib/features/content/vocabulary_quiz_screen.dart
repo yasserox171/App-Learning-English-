@@ -169,27 +169,37 @@ class _VocabularyQuizState extends ConsumerState<VocabularyQuiz> {
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 220,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.network(
-                  q.imageUrl,
-                  height: 220,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.image_not_supported, size: 80),
-                  loadingBuilder: (ctx, child, progress) => progress == null
-                      ? child
-                      : const Center(child: CircularProgressIndicator()),
+        Center(
+          child: SizedBox(
+            width: 220,
+            height: 220,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ClipOval(
+                  child: Image.network(
+                    q.imageUrl,
+                    width: 220,
+                    height: 220,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      ),
+                      child: const Icon(Icons.image_not_supported, size: 80),
+                    ),
+                    loadingBuilder: (ctx, child, progress) => progress == null
+                        ? child
+                        : const Center(child: CircularProgressIndicator()),
+                  ),
                 ),
-              ),
-              if (_answeredCorrect)
-                const Icon(Icons.check_circle, color: Colors.green, size: 110),
-            ],
+                if (_answeredCorrect)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 110),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -229,7 +239,8 @@ class _OptionButton extends StatelessWidget {
     return FilledButton(
       style: FilledButton.styleFrom(
         backgroundColor: bg,
-        minimumSize: const Size.fromHeight(52),
+        minimumSize: const Size.fromHeight(54),
+        shape: const StadiumBorder(),
       ),
       onPressed: onPressed,
       child: Text(label, style: const TextStyle(fontSize: 18)),

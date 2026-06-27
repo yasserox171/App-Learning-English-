@@ -65,12 +65,14 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         case 'exercise':
           for (final e in (c.payload as List? ?? const [])) {
             final ex = e as Map<String, dynamic>;
-            if (ex['template_code'] == 'final_test') {
+            final code = ex['template_code'];
+            if (code == 'pronunciation') continue; // removed exercise type
+            if (code == 'final_test') {
               final ids =
                   (ex['content']?['exercise_ids'] as List?) ?? const [];
               for (final id in ids) {
                 final sub = exById[id as String];
-                if (sub != null) {
+                if (sub != null && sub['template_code'] != 'pronunciation') {
                   steps.add(ExerciseView(exercise: ExerciseItem.fromJson(sub)));
                 }
               }
@@ -209,8 +211,13 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
             : (e is DioException && e.response?.statusCode == 401
                 ? t.t('session_expired')
                 : '$e');
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(msg)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          action: SnackBarAction(
+            label: t.t('retry'),
+            onPressed: () => _finish(lessonId),
+          ),
+        ));
       }
     } finally {
       if (mounted) setState(() => _finishing = false);

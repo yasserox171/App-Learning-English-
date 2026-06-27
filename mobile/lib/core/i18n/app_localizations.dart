@@ -60,6 +60,11 @@ class AppLocalizations {
       'session_expired': 'Session expired. Please sign in again.',
       'connection_error': 'Cannot reach the server. Check your connection.',
       'no_practice': 'No practice available for this lesson.',
+      'play': 'Play',
+      'tf_true': 'True',
+      'tf_false': 'False',
+      'tap_word': 'Tap a word',
+      'retry': 'Retry',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -105,6 +110,11 @@ class AppLocalizations {
       'session_expired': 'انتهت الجلسة. الرجاء تسجيل الدخول من جديد.',
       'connection_error': 'تعذّر الاتصال بالخادم. تحقّق من الاتصال.',
       'no_practice': 'لا يوجد تدريب متاح لهذا الدرس.',
+      'play': 'تشغيل',
+      'tf_true': 'صحيح',
+      'tf_false': 'خطأ',
+      'tap_word': 'اختر كلمة',
+      'retry': 'إعادة المحاولة',
     },
   };
 

@@ -26,6 +26,27 @@ def _ex(code):
     return Exercise.objects.get(template__code=code)
 
 
+# --- serializer enrichment (listening audio, fill_blank options) ----------- #
+@pytest.mark.django_db
+def test_listening_content_has_audio_text(seeded):
+    from apps.exercises.serializers import ExerciseSerializer
+
+    ex = _ex("listening")
+    content = ExerciseSerializer(ex).data["content"]
+    assert "audio_text" in content
+    assert "correct_index" not in content
+
+
+@pytest.mark.django_db
+def test_fill_blank_content_has_options(seeded):
+    from apps.exercises.serializers import ExerciseSerializer
+
+    ex = _ex("fill_blank")
+    content = ExerciseSerializer(ex).data["content"]
+    assert len(content.get("options", [])) >= 3
+    assert "answer" not in content
+
+
 # --- corrector unit tests -------------------------------------------------- #
 @pytest.mark.django_db
 def test_multiple_choice_corrector(seeded):
