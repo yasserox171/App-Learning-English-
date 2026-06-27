@@ -1,0 +1,150 @@
+[
+  {
+    "level": "A1",
+    "unit": {
+      "title": "Food & Restaurant",
+      "order": 3,
+      "description": "تعلّم المفردات الأساسية للطعام والمطعم باللغة الإنجليزية للمبتدئين."
+    },
+    "lesson": {
+      "title": "At the Restaurant",
+      "order": 1,
+      "description": "درس تمهيدي يعرّف الطالب بأهم 6 كلمات تُستخدم في المطعم مع أمثلة وتمارين."
+    },
+    "components": [
+      {
+        "type": "text",
+        "order": 1,
+        "content": "## Food & Restaurant\n\nأهلاً بك في درس **الطعام والمطعم**! 🍽️\n\nفي هذا الدرس ستتعلّم 6 كلمات إنجليزية أساسية تحتاجها عند الذهاب إلى مطعم.\n\nاستمع جيداً إلى نطق كل كلمة، وكرّرها بصوت عالٍ، ثم حُلّ التمارين في النهاية.\n\n**الكلمات:** Food, Restaurant, Water, Bread, Menu, Waiter.\n\nهيا نبدأ! Let's start!"
+      },
+      {
+        "type": "vocabulary",
+        "order": 2,
+        "items": [
+          {
+            "word": "Food",
+            "translation": "طعام",
+            "example_sentence": "I like this food.",
+            "image_url": "images/food.png",
+            "audio_url": "audio/food.mp3",
+            "order": 1
+          },
+          {
+            "word": "Restaurant",
+            "translation": "مطعم",
+            "example_sentence": "The restaurant is open.",
+            "image_url": "images/restaurant.png",
+            "audio_url": "audio/restaurant.mp3",
+            "order": 2
+          },
+          {
+            "word": "Water",
+            "translation": "ماء",
+            "example_sentence": "I want some water.",
+            "image_url": "images/water.png",
+            "audio_url": "audio/water.mp3",
+            "order": 3
+          },
+          {
+            "word": "Bread",
+            "translation": "خبز",
+            "example_sentence": "The bread is fresh.",
+            "image_url": "images/bread.png",
+            "audio_url": "audio/bread.mp3",
+            "order": 4
+          },
+          {
+            "word": "Menu",
+            "translation": "قائمة الطعام",
+            "example_sentence": "Here is the menu.",
+            "image_url": "images/menu.png",
+            "audio_url": "audio/menu.mp3",
+            "order": 5
+          },
+          {
+            "word": "Waiter",
+            "translation": "نادل",
+            "example_sentence": "The waiter is kind.",
+            "image_url": "images/waiter.png",
+            "audio_url": "audio/waiter.mp3",
+            "order": 6
+          }
+        ]
+      },
+      {
+        "type": "video",
+        "order": 3,
+        "title": "Intro: Food Words",
+        "duration": 10,
+        "storage_key": "video/intro.mp4",
+        "status": "ready"
+      },
+      {
+        "type": "exercise",
+        "order": 4,
+        "exercises": [
+          {
+            "template": "multiple_choice",
+            "points": 1,
+            "order": 1,
+            "content": {
+              "question": "Meaning of 'Water'?",
+              "options": ["ماء", "خبز", "نادل"],
+              "correct_index": 0
+            }
+          },
+          {
+            "template": "true_false",
+            "points": 1,
+            "order": 2,
+            "content": {
+              "statement": "A waiter works in a restaurant.",
+              "answer": true
+            }
+          },
+          {
+            "template": "fill_blank",
+            "points": 1,
+            "order": 3,
+            "content": {
+              "sentence": "I want some ___.",
+              "answer": "water"
+            }
+          },
+          {
+            "template": "matching",
+            "points": 1,
+            "order": 4,
+            "content": {
+              "pairs": [
+                { "left": "Bread", "right": "خبز" },
+                { "left": "Menu", "right": "قائمة الطعام" },
+                { "left": "Food", "right": "طعام" }
+              ]
+            }
+          },
+          {
+            "template": "listening",
+            "points": 1,
+            "order": 5,
+            "content": {
+              "audio_url": "audio/q1.mp3",
+              "question": "What did you hear?",
+              "options": ["water", "bread", "menu"],
+              "correct_index": 0
+            }
+          },
+          {
+            "template": "pronunciation",
+            "points": 1,
+            "order": 6,
+            "content": {
+              "target_text": "Food",
+              "reference_audio_url": "audio/food_ref.mp3"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
