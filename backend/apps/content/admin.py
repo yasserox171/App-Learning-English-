@@ -76,6 +76,8 @@ class TextBlockInline(admin.StackedInline):
 class VocabularyItemInline(admin.TabularInline):
     model = VocabularyItem
     extra = 1
+    fields = ("order", "word", "translation", "image_url", "audio_url",
+              "example_sentence")
     ordering = ("order",)
 
 
@@ -102,7 +104,7 @@ class VideoAdmin(admin.ModelAdmin):
 
 @admin.register(VocabularyItem)
 class VocabularyItemAdmin(admin.ModelAdmin):
-    list_display = ("word", "translation", "component", "order")
+    list_display = ("word", "translation", "image_url", "component", "order")
     search_fields = ("word", "translation")
 
 

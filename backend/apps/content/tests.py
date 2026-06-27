@@ -74,3 +74,14 @@ def test_video_payload_has_playback_url(auth_client):
     video_comp = next(c for c in resp.data["components"] if c["type"] == "video")
     assert "playback_url" in video_comp["payload"]
     assert video_comp["payload"]["playback_url"].endswith(".m3u8")
+
+
+def test_vocabulary_payload_has_image_url(auth_client):
+    lesson = Lesson.objects.get(title="Checking in")
+    resp = auth_client.get(reverse("v1:lesson-detail", args=[lesson.id]))
+    vocab = next(c for c in resp.data["components"] if c["type"] == "vocabulary")
+    assert vocab["payload"], "vocabulary should have items"
+    for item in vocab["payload"]:
+        assert "image_url" in item
+    # Seeded items carry demo images.
+    assert any(item["image_url"] for item in vocab["payload"])

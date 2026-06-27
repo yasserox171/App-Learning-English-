@@ -43,6 +43,13 @@ class AppLocalizations {
       'choose_language': 'Choose language',
       'arabic': 'العربية',
       'english': 'English',
+      'practice': 'Practice',
+      'practice_words': 'Practice the words',
+      'listen': 'Listen',
+      'your_score': 'Your score',
+      'try_again': 'Try again',
+      'finish': 'Finish',
+      'question': 'Question',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -71,6 +78,13 @@ class AppLocalizations {
       'choose_language': 'اختر اللغة',
       'arabic': 'العربية',
       'english': 'English',
+      'practice': 'تدرّب',
+      'practice_words': 'تدرّب على الكلمات',
+      'listen': 'استمع',
+      'your_score': 'نتيجتك',
+      'try_again': 'حاول مجدداً',
+      'finish': 'إنهاء',
+      'question': 'سؤال',
     },
   };
 

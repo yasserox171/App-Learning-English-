@@ -6,6 +6,7 @@ import '../exercises/exercise_view.dart';
 import '../progress/data/progress_repository.dart';
 import 'data/content_repository.dart';
 import 'data/models.dart';
+import 'vocabulary_view.dart';
 
 class LessonDetailScreen extends ConsumerWidget {
   const LessonDetailScreen({super.key, required this.lessonId});
@@ -69,18 +70,7 @@ class _ComponentView extends StatelessWidget {
         );
       case 'vocabulary':
         final items = (component.payload as List?) ?? [];
-        return Card(
-          child: Column(
-            children: [
-              for (final v in items)
-                ListTile(
-                  title: Text(v['word'] ?? ''),
-                  subtitle: Text(v['example_sentence'] ?? ''),
-                  trailing: Text(v['translation'] ?? ''),
-                ),
-            ],
-          ),
-        );
+        return VocabularyView(items: items);
       case 'video':
         final p = component.payload as Map<String, dynamic>?;
         return Card(

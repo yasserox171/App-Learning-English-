@@ -54,7 +54,7 @@ class VideoSerializer(serializers.ModelSerializer):
 class VocabularyItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = VocabularyItem
-        fields = ("id", "word", "translation", "audio_url",
+        fields = ("id", "word", "translation", "audio_url", "image_url",
                   "example_sentence", "order")
 
 

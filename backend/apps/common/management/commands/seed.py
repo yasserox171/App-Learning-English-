@@ -190,16 +190,22 @@ class Command(BaseCommand):
         order += 1
         vocab_comp = LessonComponent.objects.create(
             lesson=lesson, type=LessonComponent.Type.VOCABULARY, order=order)
+        # Demo image URLs use placehold.co (always load, show the word).
+        # Teachers replace these with real images via Django Admin.
         vocab = [
-            ("Airport", "مطار", "I am at the airport."),
-            ("Boarding pass", "بطاقة الصعود", "Here is my boarding pass."),
-            ("Passport", "جواز السفر", "Show me your passport, please."),
-            ("Luggage", "أمتعة", "My luggage is heavy."),
+            ("Airport", "مطار", "I am at the airport.",
+             "https://placehold.co/400x300?text=Airport"),
+            ("Boarding pass", "بطاقة الصعود", "Here is my boarding pass.",
+             "https://placehold.co/400x300?text=Boarding+pass"),
+            ("Passport", "جواز السفر", "Show me your passport, please.",
+             "https://placehold.co/400x300?text=Passport"),
+            ("Luggage", "أمتعة", "My luggage is heavy.",
+             "https://placehold.co/400x300?text=Luggage"),
         ]
-        for i, (word, tr, ex) in enumerate(vocab, start=1):
+        for i, (word, tr, ex, img) in enumerate(vocab, start=1):
             VocabularyItem.objects.create(
                 component=vocab_comp, word=word, translation=tr,
-                example_sentence=ex, order=i)
+                example_sentence=ex, image_url=img, order=i)
 
         # 3) Video (storage_key only — hosting isolated, §7)
         order += 1

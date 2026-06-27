@@ -121,6 +121,7 @@ class VocabularyItem(BaseModel):
     word = models.CharField(max_length=255)
     translation = models.CharField(max_length=255)
     audio_url = models.URLField(blank=True)
+    image_url = models.URLField(blank=True)
     example_sentence = models.TextField(blank=True)
     order = models.PositiveIntegerField(default=0)
 
