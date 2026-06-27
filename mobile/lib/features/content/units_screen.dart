@@ -14,23 +14,54 @@ class UnitsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
     final units = ref.watch(unitsProvider(levelId));
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: Text(t.t('units'))),
       body: units.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('$e')),
         data: (items) => ListView(
+          padding: const EdgeInsets.all(16),
           children: [
             for (final u in items)
-              ListTile(
-                title: Text(u.title),
-                subtitle: Text(u.description),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.go('/units/${u.id}/lessons'),
+              Card(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.push('/units/${u.id}/lessons'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: scheme.secondaryContainer,
+                          child: Icon(Icons.folder_open,
+                              color: scheme.onSecondaryContainer),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(u.title,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium),
+                              if (u.description.isNotEmpty)
+                                Text(u.description,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right),
+                      ],
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
       ),
     );
   }

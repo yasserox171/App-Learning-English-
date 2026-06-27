@@ -29,6 +29,8 @@ class LmsApp extends ConsumerWidget {
       title: 'English Learning',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: router,
       locale: locale,
       // RTL is applied automatically for Arabic by the framework.

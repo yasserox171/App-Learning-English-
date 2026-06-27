@@ -50,6 +50,12 @@ class AppLocalizations {
       'try_again': 'Try again',
       'finish': 'Finish',
       'question': 'Question',
+      'home': 'Home',
+      'back': 'Back',
+      'start_lesson': 'Start lesson',
+      'finish_lesson': 'Finish lesson',
+      'welcome': 'Welcome back',
+      'keep_learning': 'Keep learning!',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -85,6 +91,12 @@ class AppLocalizations {
       'try_again': 'حاول مجدداً',
       'finish': 'إنهاء',
       'question': 'سؤال',
+      'home': 'الرئيسية',
+      'back': 'السابق',
+      'start_lesson': 'ابدأ الدرس',
+      'finish_lesson': 'إنهاء الدرس',
+      'welcome': 'مرحباً بعودتك',
+      'keep_learning': 'واصل التعلّم!',
     },
   };
 
