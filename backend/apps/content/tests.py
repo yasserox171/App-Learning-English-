@@ -1,10 +1,13 @@
 """Phase 3 content API tests."""
+import json
+
 import pytest
 from django.core.management import call_command
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.content.models import Lesson, Level, Unit
+from apps.exercises.models import Exercise
 from apps.users.models import User
 
 
@@ -74,6 +77,56 @@ def test_video_payload_has_playback_url(auth_client):
     video_comp = next(c for c in resp.data["components"] if c["type"] == "video")
     assert "playback_url" in video_comp["payload"]
     assert video_comp["payload"]["playback_url"].endswith(".m3u8")
+
+
+def test_import_content_creates_full_lesson(seeded, tmp_path):
+    payload = [{
+        "level": "A1",
+        "unit": {"title": "Imported Unit", "order": 9},
+        "lesson": {"title": "Imported Lesson", "order": 1},
+        "components": [
+            {"type": "text", "order": 1, "content": "hello"},
+            {"type": "vocabulary", "order": 2, "items": [
+                {"word": "Sea", "translation": "بحر",
+                 "image_url": "imgs/sea.png", "order": 1},
+            ]},
+            {"type": "exercise", "order": 3, "exercises": [
+                {"template": "multiple_choice", "points": 2, "order": 1,
+                 "content": {"question": "?", "options": ["a", "b"],
+                             "correct_index": 1}},
+            ]},
+        ],
+    }]
+    f = tmp_path / "lesson.json"
+    f.write_text(json.dumps(payload), encoding="utf-8")
+
+    call_command("import_content", str(f),
+                 "--media-base-url", "http://x/media", "--media-dest", "d")
+
+    lesson = Lesson.objects.get(title="Imported Lesson")
+    assert lesson.unit.title == "Imported Unit"
+    assert lesson.components.count() == 3
+    # Relative media path was rewritten to an absolute URL.
+    vocab = lesson.components.get(type="vocabulary").vocabulary_items.first()
+    assert vocab.image_url == "http://x/media/d/imgs/sea.png"
+    ex = Exercise.objects.get(component__lesson=lesson)
+    assert ex.points == 2
+
+
+def test_import_content_replace_clears_components(seeded, tmp_path):
+    payload = {
+        "level": "A1",
+        "unit": {"title": "Rep Unit"},
+        "lesson": {"title": "Rep Lesson"},
+        "components": [{"type": "text", "order": 1, "content": "v1"}],
+    }
+    f = tmp_path / "l.json"
+    f.write_text(json.dumps(payload), encoding="utf-8")
+    call_command("import_content", str(f))
+    call_command("import_content", str(f), "--replace")
+    lesson = Lesson.objects.get(title="Rep Lesson")
+    # --replace prevents duplicate components.
+    assert lesson.components.count() == 1
 
 
 def test_vocabulary_payload_has_image_url(auth_client):

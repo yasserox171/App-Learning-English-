@@ -1,0 +1,51 @@
+[
+  {
+    "level": "A1",
+    "unit":   { "title": "At the Beach", "order": 2, "description": "Beach vocabulary and phrases." },
+    "lesson": { "title": "On the sand",  "order": 1, "description": "Basic beach words." },
+    "components": [
+      {
+        "type": "text",
+        "order": 1,
+        "content": "# On the sand\nLearn common words you hear at the beach."
+      },
+      {
+        "type": "vocabulary",
+        "order": 2,
+        "items": [
+          { "word": "Sand",  "translation": "رمل",  "example_sentence": "The sand is hot.",
+            "image_url": "https://placehold.co/400x300?text=Sand",  "audio_url": "", "order": 1 },
+          { "word": "Sea",   "translation": "بحر",  "example_sentence": "The sea is blue.",
+            "image_url": "https://placehold.co/400x300?text=Sea",   "audio_url": "", "order": 2 },
+          { "word": "Shell", "translation": "صدفة", "example_sentence": "I found a shell.",
+            "image_url": "https://placehold.co/400x300?text=Shell", "audio_url": "", "order": 3 },
+          { "word": "Sun",   "translation": "شمس",  "example_sentence": "The sun is bright.",
+            "image_url": "https://placehold.co/400x300?text=Sun",   "audio_url": "", "order": 4 }
+        ]
+      },
+      {
+        "type": "video",
+        "order": 3,
+        "title": "Beach intro",
+        "duration": 90,
+        "storage_key": "samples/beach.m3u8",
+        "status": "ready"
+      },
+      {
+        "type": "exercise",
+        "order": 4,
+        "exercises": [
+          { "template": "multiple_choice", "points": 1, "order": 1,
+            "content": { "question": "Meaning of 'Sea'?", "options": ["بحر", "جبل", "شجرة"], "correct_index": 0 } },
+          { "template": "true_false", "points": 1, "order": 2,
+            "content": { "statement": "Sand is a kind of water.", "answer": false } },
+          { "template": "fill_blank", "points": 1, "order": 3,
+            "content": { "sentence": "I see the ___.", "answer": "sea" } },
+          { "template": "listening", "points": 1, "order": 4,
+            "content": { "audio_url": "audio/q_sea.mp3", "question": "What did you hear?",
+                         "options": ["sea", "sun", "sand"], "correct_index": 0 } }
+        ]
+      }
+    ]
+  }
+]

@@ -126,6 +126,28 @@ docker compose up --build
 
 ---
 
+## إدراج محتوى كامل عبر سطر الأوامر (import_content)
+
+لإدراج درس كامل (نص + مفردات + فيديو + تمارين) دفعةً واحدة من ملف JSON:
+
+```bash
+cd backend && . .venv/bin/activate
+python manage.py import_content content_samples/sample_lesson.json
+# مع وسائط محلية + استبدال مكوّنات درس قائم:
+python manage.py import_content lesson.json --media-dir ./media --replace
+```
+
+- مثال الهيكل الكامل: [`backend/content_samples/sample_lesson.json`](backend/content_samples/sample_lesson.json)
+- `level` = كود مستوى موجود (A1..C2). الوحدة/الدرس يُنشآن بالعنوان (get_or_create).
+- أنواع المكوّنات: `text | vocabulary | video | exercise`.
+- قوالب التمارين الثمانية وصيغ `content`: راجع `docs/master_prompt.md` §9.
+- **الوسائط:** الروابط المطلقة (http/https) تُستخدم كما هي؛ المسارات النسبية
+  تتحوّل إلى `{--media-base-url}/{--media-dest}/<path>`، وتُنسخ ملفات `--media-dir`
+  إلى `MEDIA_ROOT/<media-dest>/`. يُطبَّق على صور/صوت المفردات وصوت تمارين
+  الاستماع/النطق. (افتراضي base على الهاتف: `http://127.0.0.1:8000/media`).
+
+---
+
 ## ملاحظات معمارية أساسية
 1. **التمارين بـJSON موجّه بقالب** → مرونة بلا تعديل قاعدة البيانات.
 2. **مكوّنات الدرس مرنة ومرتّبة** → الأستاذ يبني الدرس كما يشاء.
