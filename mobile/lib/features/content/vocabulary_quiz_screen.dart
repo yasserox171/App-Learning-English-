@@ -13,21 +13,20 @@ class _Question {
   final List<String> options; // shuffled, includes the correct word
 }
 
-/// Image multiple-choice vocabulary quiz, generated locally from the lesson's
-/// vocabulary items (image + word). Correct answer -> green check, the word is
-/// spoken aloud, then it auto-advances. Pure practice (not graded server-side).
-class VocabularyQuizScreen extends ConsumerStatefulWidget {
-  const VocabularyQuizScreen({super.key, required this.items});
+/// Embeddable image multiple-choice vocabulary quiz, generated locally from the
+/// lesson's vocabulary items (image + word). Correct answer -> green check, the
+/// word is spoken aloud, then it auto-advances. Pure practice (client-side).
+class VocabularyQuiz extends ConsumerStatefulWidget {
+  const VocabularyQuiz({super.key, required this.items});
 
   final List items;
 
   @override
-  ConsumerState<VocabularyQuizScreen> createState() =>
-      _VocabularyQuizScreenState();
+  ConsumerState<VocabularyQuiz> createState() => _VocabularyQuizState();
 }
 
-class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
-  late final List<_Question> _questions;
+class _VocabularyQuizState extends ConsumerState<VocabularyQuiz> {
+  late List<_Question> _questions;
   int _index = 0;
   int _score = 0;
   bool _mistakeOnCurrent = false;
@@ -43,7 +42,6 @@ class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
 
   List<_Question> _buildQuestions() {
     final rnd = Random();
-    // Unique words across the component form the distractor pool.
     final allWords = <String>{
       for (final v in widget.items)
         if ((v['word'] ?? '').toString().isNotEmpty) v['word'] as String,
@@ -57,10 +55,11 @@ class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
     final questions = <_Question>[];
     for (final v in withImages) {
       final word = v['word'] as String;
-      final distractors = (allWords.where((w) => w != word).toList()..shuffle(rnd))
-          .take(2)
-          .toList();
-      if (distractors.length < 2) continue; // need 3 options total
+      final distractors =
+          (allWords.where((w) => w != word).toList()..shuffle(rnd))
+              .take(2)
+              .toList();
+      if (distractors.length < 2) continue;
       final options = [word, ...distractors]..shuffle(rnd);
       questions.add(_Question(
         imageUrl: v['image_url'] as String,
@@ -105,9 +104,7 @@ class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
 
   void _restart() {
     setState(() {
-      _questions
-        ..clear()
-        ..addAll(_buildQuestions());
+      _questions = _buildQuestions();
       _index = 0;
       _score = 0;
       _answeredCorrect = false;
@@ -122,31 +119,30 @@ class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
     final t = AppLocalizations.of(context);
 
     if (_questions.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: Text(t.t('practice'))),
-        body: const Center(child: Text('—')),
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(child: Text(t.t('no_practice'))),
+        ),
       );
     }
 
     if (_finished) {
-      return Scaffold(
-        appBar: AppBar(title: Text(t.t('practice'))),
-        body: Center(
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.emoji_events, size: 80, color: Colors.amber),
-              const SizedBox(height: 16),
+              const Icon(Icons.emoji_events, size: 72, color: Colors.amber),
+              const SizedBox(height: 12),
               Text('${t.t('your_score')}: $_score / ${_questions.length}',
-                  style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 24),
-              FilledButton(
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 16),
+              FilledButton.icon(
                 onPressed: _restart,
-                child: Text(t.t('try_again')),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(t.t('finish')),
+                icon: const Icon(Icons.refresh),
+                label: Text(t.t('try_again')),
               ),
             ],
           ),
@@ -155,54 +151,59 @@ class _VocabularyQuizScreenState extends ConsumerState<VocabularyQuizScreen> {
     }
 
     final q = _questions[_index];
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${t.t('question')} ${_index + 1}/${_questions.length}'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            LinearProgressIndicator(value: (_index + 1) / _questions.length),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      q.imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                          Icons.image_not_supported, size: 80),
-                      loadingBuilder: (ctx, child, progress) =>
-                          progress == null
-                              ? child
-                              : const Center(
-                                  child: CircularProgressIndicator()),
-                    ),
-                  ),
-                  if (_answeredCorrect)
-                    const Icon(Icons.check_circle,
-                        color: Colors.green, size: 120),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            for (final option in q.options)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: _OptionButton(
-                  label: option,
-                  correct: _answeredCorrect && option == q.word,
-                  wrong: _selectedWrong == option,
-                  onPressed: () => _onSelect(option),
-                ),
-              ),
+            Text('${t.t('question')} ${_index + 1}/${_questions.length}',
+                style: Theme.of(context).textTheme.labelLarge),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: (_index + 1) / _questions.length,
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 220,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  q.imageUrl,
+                  height: 220,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.image_not_supported, size: 80),
+                  loadingBuilder: (ctx, child, progress) => progress == null
+                      ? child
+                      : const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              if (_answeredCorrect)
+                const Icon(Icons.check_circle, color: Colors.green, size: 110),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        for (final option in q.options)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: _OptionButton(
+              label: option,
+              correct: _answeredCorrect && option == q.word,
+              wrong: _selectedWrong == option,
+              onPressed: () => _onSelect(option),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -225,16 +226,13 @@ class _OptionButton extends StatelessWidget {
     Color? bg;
     if (correct) bg = Colors.green;
     if (wrong) bg = Colors.red.shade400;
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: bg,
-          minimumSize: const Size.fromHeight(52),
-        ),
-        onPressed: onPressed,
-        child: Text(label, style: const TextStyle(fontSize: 18)),
+    return FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: bg,
+        minimumSize: const Size.fromHeight(52),
       ),
+      onPressed: onPressed,
+      child: Text(label, style: const TextStyle(fontSize: 18)),
     );
   }
 }

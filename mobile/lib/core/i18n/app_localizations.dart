@@ -56,6 +56,10 @@ class AppLocalizations {
       'finish_lesson': 'Finish lesson',
       'welcome': 'Welcome back',
       'keep_learning': 'Keep learning!',
+      'start_practice': 'Start practice',
+      'session_expired': 'Session expired. Please sign in again.',
+      'connection_error': 'Cannot reach the server. Check your connection.',
+      'no_practice': 'No practice available for this lesson.',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -97,6 +101,10 @@ class AppLocalizations {
       'finish_lesson': 'إنهاء الدرس',
       'welcome': 'مرحباً بعودتك',
       'keep_learning': 'واصل التعلّم!',
+      'start_practice': 'ابدأ التدريب',
+      'session_expired': 'انتهت الجلسة. الرجاء تسجيل الدخول من جديد.',
+      'connection_error': 'تعذّر الاتصال بالخادم. تحقّق من الاتصال.',
+      'no_practice': 'لا يوجد تدريب متاح لهذا الدرس.',
     },
   };
 

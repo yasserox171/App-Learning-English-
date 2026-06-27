@@ -28,8 +28,12 @@ class LocalVideoService(VideoService):
     """
 
     def get_playback_url(self, video) -> str:
+        key = video.storage_key or ""
+        # Absolute URLs (e.g. imported media) are used as-is.
+        if key.startswith("http://") or key.startswith("https://"):
+            return key
         base = settings.VIDEO_PLAYBACK_BASE_URL.rstrip("/")
-        return f"{base}/{video.storage_key}"
+        return f"{base}/{key}"
 
 
 # Single shared instance — import this everywhere video URLs are needed.

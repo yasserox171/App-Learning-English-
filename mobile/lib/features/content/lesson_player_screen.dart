@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import '../exercises/exercise_view.dart';
 import '../progress/data/progress_repository.dart';
 import 'data/content_repository.dart';
 import 'data/models.dart';
+import 'video_player_widget.dart';
 import 'vocabulary_view.dart';
 
 class LessonPlayerScreen extends ConsumerStatefulWidget {
@@ -30,6 +32,58 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
     super.dispose();
   }
 
+  /// Flattens the lesson into one widget per page (one exercise per page;
+  /// final_test expands into its referenced exercises).
+  List<Widget> _buildSteps(LessonDetail l) {
+    // Index every exercise by id so final_test can resolve its references.
+    final exById = <String, Map<String, dynamic>>{};
+    for (final c in l.components) {
+      if (c.type == 'exercise') {
+        for (final e in (c.payload as List? ?? const [])) {
+          final m = e as Map<String, dynamic>;
+          exById[m['id'] as String] = m;
+        }
+      }
+    }
+
+    final steps = <Widget>[];
+    for (final c in l.components) {
+      switch (c.type) {
+        case 'text':
+          steps.add(MarkdownText((c.payload?['content'] ?? '') as String));
+          break;
+        case 'vocabulary':
+          steps.add(VocabularyView(items: (c.payload as List?) ?? const []));
+          break;
+        case 'video':
+          final p = c.payload as Map<String, dynamic>?;
+          final url = (p?['playback_url'] ?? '') as String;
+          if (url.isNotEmpty) {
+            steps.add(VideoPlayerWidget(url: url, title: p?['title'] as String?));
+          }
+          break;
+        case 'exercise':
+          for (final e in (c.payload as List? ?? const [])) {
+            final ex = e as Map<String, dynamic>;
+            if (ex['template_code'] == 'final_test') {
+              final ids =
+                  (ex['content']?['exercise_ids'] as List?) ?? const [];
+              for (final id in ids) {
+                final sub = exById[id as String];
+                if (sub != null) {
+                  steps.add(ExerciseView(exercise: ExerciseItem.fromJson(sub)));
+                }
+              }
+            } else {
+              steps.add(ExerciseView(exercise: ExerciseItem.fromJson(ex)));
+            }
+          }
+          break;
+      }
+    }
+    return steps;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -46,11 +100,9 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (l) {
-          final components = l.components;
-          final total = components.length;
-          if (total == 0) {
-            return Center(child: Text(l.title));
-          }
+          final steps = _buildSteps(l);
+          final total = steps.length;
+          if (total == 0) return Center(child: Text(l.title));
           final isLast = _index == total - 1;
 
           return Column(
@@ -80,7 +132,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
                   itemCount: total,
                   itemBuilder: (_, i) => SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
-                    child: _StepView(component: components[i]),
+                    child: steps[i],
                   ),
                 ),
               ),
@@ -137,6 +189,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
   }
 
   Future<void> _finish(String lessonId) async {
+    final t = AppLocalizations.of(context);
     setState(() => _finishing = true);
     try {
       await ref
@@ -144,68 +197,23 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
           .updateLesson(lessonId, status: 'completed');
       ref.invalidate(progressOverviewProvider);
       if (mounted) {
-        final t = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(t.t('completed'))),
         );
         context.pop();
       }
+    } catch (e) {
+      if (mounted) {
+        final msg = e is DioException && e.response == null
+            ? t.t('connection_error')
+            : (e is DioException && e.response?.statusCode == 401
+                ? t.t('session_expired')
+                : '$e');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(msg)));
+      }
     } finally {
       if (mounted) setState(() => _finishing = false);
-    }
-  }
-}
-
-/// Renders a single lesson component as a full step.
-class _StepView extends StatelessWidget {
-  const _StepView({required this.component});
-
-  final LessonComponent component;
-
-  @override
-  Widget build(BuildContext context) {
-    switch (component.type) {
-      case 'text':
-        return MarkdownText((component.payload?['content'] ?? '') as String);
-      case 'vocabulary':
-        return VocabularyView(items: (component.payload as List?) ?? []);
-      case 'video':
-        final p = component.payload as Map<String, dynamic>?;
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.play_circle_fill, size: 64),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(p?['title'] ?? 'Video',
-                    style: Theme.of(context).textTheme.titleMedium),
-                Text('${p?['duration'] ?? 0}s'),
-              ],
-            ),
-          ),
-        );
-      case 'exercise':
-        final list = (component.payload as List?) ?? [];
-        return Column(
-          children: [
-            for (final e in list)
-              ExerciseView(
-                exercise: ExerciseItem.fromJson(e as Map<String, dynamic>),
-              ),
-          ],
-        );
-      default:
-        return const SizedBox.shrink();
     }
   }
 }

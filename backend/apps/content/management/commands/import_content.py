@@ -174,7 +174,9 @@ class Command(BaseCommand):
                 component=component,
                 title=comp.get("title", ""),
                 duration=comp.get("duration", 0),
-                storage_key=comp.get("storage_key", ""),
+                # Relative paths become absolute media URLs (like other media);
+                # VideoService passes absolute URLs through unchanged.
+                storage_key=self._media_url(comp.get("storage_key", "")),
                 status=comp.get("status", Video.Status.READY),
             )
 

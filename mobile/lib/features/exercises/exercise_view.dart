@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,11 +27,20 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
       final res = await ref
           .read(exerciseRepositoryProvider)
           .attempt(widget.exercise.id, answer);
-      setState(() => _result = res);
-    } catch (_) {
-      setState(() => _result = null);
+      if (mounted) setState(() => _result = res);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _result = null);
+        final t = AppLocalizations.of(context);
+        final msg = e is DioException && e.response == null
+            ? t.t('connection_error')
+            : (e is DioException && e.response?.statusCode == 401
+                ? t.t('session_expired')
+                : '${t.t('incorrect')} — $e');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
     } finally {
-      setState(() => _submitting = false);
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -59,9 +69,6 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
         break;
       case 'pronunciation':
         body = _PronunciationExercise(content: ex.content, onSubmit: _submit);
-        break;
-      case 'final_test':
-        body = Text('Final test: ${ex.content['exercise_ids']?.length ?? 0} items');
         break;
       default:
         body = Text('Unsupported: ${ex.templateCode}');
