@@ -38,14 +38,18 @@ def test_level_units(auth_client):
     level = Level.objects.get(code="A1")
     resp = auth_client.get(reverse("v1:level-units", args=[level.id]))
     assert resp.status_code == 200
-    assert resp.data["count"] >= 1
+    # Enriched list: plain array with per-unit progress + lock state.
+    assert len(resp.data) >= 1
+    assert {"percent", "locked", "completed", "total"} <= set(resp.data[0])
 
 
 def test_unit_lessons(auth_client):
     unit = Unit.objects.first()
     resp = auth_client.get(reverse("v1:unit-lessons", args=[unit.id]))
     assert resp.status_code == 200
-    assert resp.data["count"] >= 1
+    assert len(resp.data) >= 1
+    assert {"status", "percent", "locked"} <= set(resp.data[0])
+    assert resp.data[0]["locked"] is False  # first lesson always open
 
 
 def test_lesson_detail_returns_ordered_components(auth_client):

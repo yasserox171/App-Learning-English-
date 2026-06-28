@@ -4,12 +4,23 @@ Level progress is COMPUTED here, never stored.
 """
 import io
 import uuid
+from datetime import timedelta
 
 from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 
-from apps.content.models import Lesson, Level
+from apps.content.models import Lesson, Level, Unit
 
-from .models import Certificate, Progress
+from .models import Certificate, PlacementResult, Progress
+
+# Per-lesson progress is binary (completed / not), so map status -> percent for
+# a friendlier UI ("متابعة 50%").
+_STATUS_PERCENT = {
+    Progress.Status.COMPLETED: 100,
+    Progress.Status.IN_PROGRESS: 50,
+    Progress.Status.NOT_STARTED: 0,
+}
 
 
 def compute_level_progress(user, level: Level) -> dict:
@@ -37,11 +48,167 @@ def compute_level_progress(user, level: Level) -> dict:
     }
 
 
-def overview(user) -> list:
-    return [
-        compute_level_progress(user, level)
-        for level in Level.objects.all().order_by("order")
-    ]
+def compute_streak(user) -> int:
+    """Consecutive days (ending today or yesterday) with a completed lesson."""
+    dates = set(
+        Progress.objects.filter(user=user, completed_at__isnull=False)
+        .annotate(day=TruncDate("completed_at"))
+        .values_list("day", flat=True)
+    )
+    if not dates:
+        return 0
+    today = timezone.localdate()
+    if today in dates:
+        cursor = today
+    elif (today - timedelta(days=1)) in dates:
+        cursor = today - timedelta(days=1)
+    else:
+        return 0
+    streak = 0
+    while cursor in dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
+def total_xp(user) -> int:
+    """Total XP = sum of all lesson scores earned by the user."""
+    return Progress.objects.filter(user=user).aggregate(x=Sum("score"))["x"] or 0
+
+
+def current_level(user, level_stats: list | None = None) -> dict | None:
+    """The level the learner is actively on: the highest in-progress level,
+    else the placement level, else the first not-yet-completed level."""
+    levels = list(Level.objects.all().order_by("order"))
+    if not levels:
+        return None
+    stats = {s["level_id"]: s for s in (level_stats or [])}
+
+    def stat_for(level):
+        return stats.get(str(level.id)) or compute_level_progress(user, level)
+
+    chosen = None
+    for level in levels:  # last (highest) with some progress but unfinished
+        s = stat_for(level)
+        if s["percent"] > 0 and not s["is_completed"]:
+            chosen = level
+    if chosen is None:
+        placement = (
+            PlacementResult.objects.filter(user=user)
+            .order_by("-taken_at")
+            .first()
+        )
+        if placement:
+            chosen = placement.assigned_level
+    if chosen is None:
+        chosen = next(
+            (l for l in levels if not stat_for(l)["is_completed"]), levels[-1]
+        )
+    s = stat_for(chosen)
+    return {"code": chosen.code, "name": chosen.name, "percent": s["percent"]}
+
+
+def continue_lesson(user) -> dict | None:
+    """The most recently touched in-progress lesson, for the home dashboard."""
+    progress = (
+        Progress.objects.filter(user=user, status=Progress.Status.IN_PROGRESS)
+        .select_related("lesson__unit__level")
+        .order_by("-updated_at")
+        .first()
+    )
+    if not progress:
+        return None
+    lesson = progress.lesson
+    return {
+        "lesson_id": str(lesson.id),
+        "lesson_title": lesson.title,
+        "unit_title": lesson.unit.title,
+        "level_code": lesson.unit.level.code,
+        "percent": _STATUS_PERCENT[Progress.Status.IN_PROGRESS],
+    }
+
+
+def units_overview(user, level_id) -> list:
+    """Units of a level with per-unit progress and sequential lock state."""
+    units = list(Unit.objects.filter(level_id=level_id).order_by("order"))
+    result = []
+    prev_completed = True
+    for i, unit in enumerate(units):
+        lesson_ids = list(
+            Lesson.objects.filter(unit=unit).values_list("id", flat=True)
+        )
+        total = len(lesson_ids)
+        completed = Progress.objects.filter(
+            user=user,
+            lesson_id__in=lesson_ids,
+            status=Progress.Status.COMPLETED,
+        ).count()
+        percent = round((completed / total) * 100) if total else 0
+        is_completed = total > 0 and completed == total
+        result.append(
+            {
+                "id": str(unit.id),
+                "title": unit.title,
+                "description": unit.description,
+                "order": unit.order,
+                "total": total,
+                "completed": completed,
+                "percent": percent,
+                "is_completed": is_completed,
+                "locked": not (i == 0 or prev_completed),
+            }
+        )
+        prev_completed = is_completed
+    return result
+
+
+def lessons_overview(user, unit_id) -> list:
+    """Lessons of a unit with per-lesson status/percent and sequential lock."""
+    lessons = list(Lesson.objects.filter(unit_id=unit_id).order_by("order"))
+    by_lesson = {
+        p.lesson_id: p
+        for p in Progress.objects.filter(user=user, lesson__unit_id=unit_id)
+    }
+    result = []
+    prev_completed = True
+    for i, lesson in enumerate(lessons):
+        progress = by_lesson.get(lesson.id)
+        status = progress.status if progress else Progress.Status.NOT_STARTED
+        result.append(
+            {
+                "id": str(lesson.id),
+                "title": lesson.title,
+                "description": lesson.description,
+                "order": lesson.order,
+                "status": status,
+                "percent": _STATUS_PERCENT.get(status, 0),
+                "locked": not (i == 0 or prev_completed),
+            }
+        )
+        prev_completed = status == Progress.Status.COMPLETED
+    return result
+
+
+def overview(user) -> dict:
+    """Per-level progress (with sequential lock) plus a gamification summary."""
+    levels = list(Level.objects.all().order_by("order"))
+    level_stats = []
+    prev_completed = True
+    for i, level in enumerate(levels):
+        stats = compute_level_progress(user, level)
+        stats["locked"] = not (level.is_free or i == 0 or prev_completed)
+        level_stats.append(stats)
+        prev_completed = stats["is_completed"]
+
+    summary = {
+        "xp": total_xp(user),
+        "streak": compute_streak(user),
+        "completed_lessons": sum(s["completed_lessons"] for s in level_stats),
+        "total_lessons": sum(s["total_lessons"] for s in level_stats),
+        "current_level": current_level(user, level_stats),
+        "continue": continue_lesson(user),
+    }
+    return {"levels": level_stats, "summary": summary}
 
 
 def maybe_issue_certificate(user, level: Level):

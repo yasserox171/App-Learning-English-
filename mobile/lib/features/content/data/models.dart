@@ -23,27 +23,64 @@ class Level {
 }
 
 class Unit {
-  Unit({required this.id, required this.title, required this.description});
+  Unit({
+    required this.id,
+    required this.title,
+    required this.description,
+    this.percent = 0,
+    this.completed = 0,
+    this.total = 0,
+    this.isCompleted = false,
+    this.locked = false,
+  });
 
   final String id;
   final String title;
   final String description;
+  final int percent;
+  final int completed;
+  final int total;
+  final bool isCompleted;
+  final bool locked;
 
-  factory Unit.fromJson(Map<String, dynamic> j) =>
-      Unit(id: j['id'], title: j['title'], description: j['description'] ?? '');
+  factory Unit.fromJson(Map<String, dynamic> j) => Unit(
+        id: j['id'],
+        title: j['title'],
+        description: j['description'] ?? '',
+        percent: j['percent'] ?? 0,
+        completed: j['completed'] ?? 0,
+        total: j['total'] ?? 0,
+        isCompleted: j['is_completed'] ?? false,
+        locked: j['locked'] ?? false,
+      );
 }
 
 class LessonSummary {
-  LessonSummary({required this.id, required this.title, required this.description});
+  LessonSummary({
+    required this.id,
+    required this.title,
+    required this.description,
+    this.status = 'not_started',
+    this.percent = 0,
+    this.locked = false,
+  });
 
   final String id;
   final String title;
   final String description;
+  final String status;
+  final int percent;
+  final bool locked;
+
+  bool get isCompleted => status == 'completed';
 
   factory LessonSummary.fromJson(Map<String, dynamic> j) => LessonSummary(
         id: j['id'],
         title: j['title'],
         description: j['description'] ?? '',
+        status: j['status'] ?? 'not_started',
+        percent: j['percent'] ?? 0,
+        locked: j['locked'] ?? false,
       );
 }
 

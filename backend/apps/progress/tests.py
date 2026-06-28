@@ -1,11 +1,19 @@
 """Phase 5 tests: progress, placement, certificates (critical path §14.4)."""
+from datetime import timedelta
+
 import pytest
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.content.models import Lesson, Level
+from apps.content.models import Lesson, Level, Unit
 from apps.progress.models import Certificate, PlacementResult, Progress
+from apps.progress.services import (
+    compute_streak,
+    lessons_overview,
+    units_overview,
+)
 from apps.users.models import User
 
 
@@ -62,7 +70,92 @@ def test_progress_overview_shape(auth_client):
     assert resp.status_code == 200
     assert len(resp.data["levels"]) == 6
     first = resp.data["levels"][0]
-    assert {"percent", "completed_lessons", "total_lessons", "points"} <= set(first)
+    assert {"percent", "completed_lessons", "total_lessons", "points", "locked"} <= set(first)
+
+
+def test_progress_overview_has_summary(auth_client):
+    client, _ = auth_client
+    resp = client.get(reverse("v1:progress-overview"))
+    summary = resp.data["summary"]
+    assert {"xp", "streak", "completed_lessons", "current_level", "continue"} <= set(
+        summary
+    )
+    assert summary["current_level"]["code"]  # a level is always suggested
+
+
+# --- Sequential lock + gamification --------------------------------------- #
+@pytest.fixture
+def ladder(db):
+    """A level with one unit and three ordered lessons."""
+    level = Level.objects.create(code="ZZ", name="Test", order=99, is_free=True)
+    unit = Unit.objects.create(level=level, title="U1", order=1)
+    lessons = [
+        Lesson.objects.create(unit=unit, title=f"L{i}", order=i)
+        for i in range(1, 4)
+    ]
+    return level, unit, lessons
+
+
+def test_lessons_overview_sequential_lock(ladder):
+    level, unit, lessons = ladder
+    user = User.objects.create_user(email="l@test.com", password="pass12345")
+
+    rows = lessons_overview(user, unit.id)
+    assert rows[0]["locked"] is False
+    assert rows[1]["locked"] is True and rows[2]["locked"] is True
+
+    Progress.objects.create(
+        user=user,
+        lesson=lessons[0],
+        status=Progress.Status.COMPLETED,
+        completed_at=timezone.now(),
+    )
+    rows = lessons_overview(user, unit.id)
+    assert rows[0]["percent"] == 100
+    assert rows[1]["locked"] is False  # next unlocks
+    assert rows[2]["locked"] is True
+
+
+def test_units_overview_sequential_lock(ladder):
+    level, unit, lessons = ladder
+    user = User.objects.create_user(email="u@test.com", password="pass12345")
+    unit2 = Unit.objects.create(level=level, title="U2", order=2)
+    Lesson.objects.create(unit=unit2, title="L1", order=1)
+
+    rows = units_overview(user, level.id)
+    assert rows[0]["locked"] is False and rows[1]["locked"] is True
+
+    for lesson in lessons:  # finish unit 1
+        Progress.objects.create(
+            user=user,
+            lesson=lesson,
+            status=Progress.Status.COMPLETED,
+            completed_at=timezone.now(),
+        )
+    rows = units_overview(user, level.id)
+    assert rows[0]["is_completed"] is True
+    assert rows[1]["locked"] is False
+
+
+def test_compute_streak(ladder):
+    _, _, lessons = ladder
+    user = User.objects.create_user(email="s@test.com", password="pass12345")
+    now = timezone.now()
+    Progress.objects.create(
+        user=user, lesson=lessons[0],
+        status=Progress.Status.COMPLETED, completed_at=now,
+    )
+    Progress.objects.create(
+        user=user, lesson=lessons[1],
+        status=Progress.Status.COMPLETED, completed_at=now - timedelta(days=1),
+    )
+    assert compute_streak(user) == 2
+    # A 3-day-old completion is not consecutive -> streak stays 2.
+    Progress.objects.create(
+        user=user, lesson=lessons[2],
+        status=Progress.Status.COMPLETED, completed_at=now - timedelta(days=3),
+    )
+    assert compute_streak(user) == 2
 
 
 def test_update_lesson_progress(auth_client):

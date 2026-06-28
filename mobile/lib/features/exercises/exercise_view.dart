@@ -10,9 +10,13 @@ import 'data/exercise_repository.dart';
 /// Dispatches to the right widget per exercise template (master prompt §9).
 /// Adding a new template = a new case here + a new corrector on the backend.
 class ExerciseView extends ConsumerStatefulWidget {
-  const ExerciseView({super.key, required this.exercise});
+  const ExerciseView({super.key, required this.exercise, this.onResult});
 
   final ExerciseItem exercise;
+
+  /// Called after each graded attempt so a parent (e.g. the lesson player) can
+  /// tally the lesson score.
+  final void Function(String exerciseId, AttemptResult result)? onResult;
 
   @override
   ConsumerState<ExerciseView> createState() => _ExerciseViewState();
@@ -31,6 +35,7 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
           .read(exerciseRepositoryProvider)
           .attempt(widget.exercise.id, answer);
       if (mounted) setState(() => _result = res);
+      widget.onResult?.call(widget.exercise.id, res);
     } catch (e) {
       if (mounted) {
         setState(() => _result = null);
@@ -128,13 +133,14 @@ class _ChoiceExerciseState extends State<_ChoiceExercise> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.content['question'] ?? ''),
+        Text(widget.content['question'] ?? '',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
         for (int i = 0; i < options.length; i++)
-          RadioListTile<int>(
-            value: i,
-            groupValue: _selected,
-            title: Text(options[i]),
-            onChanged: (v) => setState(() => _selected = v),
+          _OptionTile(
+            label: options[i],
+            selected: _selected == i,
+            onTap: () => setState(() => _selected = i),
           ),
         _SubmitButton(
           onPressed: _selected == null
@@ -142,6 +148,59 @@ class _ChoiceExerciseState extends State<_ChoiceExercise> {
               : () => widget.onSubmit({'selected_index': _selected}),
         ),
       ],
+    );
+  }
+}
+
+/// A selectable, card-styled answer option (multiple choice / listening).
+class _OptionTile extends StatelessWidget {
+  const _OptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: selected ? scheme.primary.withOpacity(0.12) : scheme.surface,
+            border: Border.all(
+              color: selected
+                  ? scheme.primary
+                  : scheme.outlineVariant.withOpacity(0.5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Text(label,
+                      style: const TextStyle(fontSize: 16))),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -220,21 +279,32 @@ class _ListeningExerciseState extends State<_ListeningExercise> {
         if (widget.content['question'] != null)
           Text(widget.content['question'],
               style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Center(
-          child: FilledButton.icon(
-            onPressed: audioText.isEmpty ? null : () => widget.onSpeak(audioText),
-            icon: const Icon(Icons.volume_up),
-            label: Text(t.t('play')),
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: EdgeInsets.zero,
+              ),
+              onPressed:
+                  audioText.isEmpty ? null : () => widget.onSpeak(audioText),
+              child: const Icon(Icons.volume_up_rounded, size: 36),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
+        Center(
+            child: Text(t.t('play'),
+                style: Theme.of(context).textTheme.labelMedium)),
+        const SizedBox(height: 12),
         for (int i = 0; i < options.length; i++)
-          RadioListTile<int>(
-            value: i,
-            groupValue: _selected,
-            title: Text(options[i]),
-            onChanged: (v) => setState(() => _selected = v),
+          _OptionTile(
+            label: options[i],
+            selected: _selected == i,
+            onTap: () => setState(() => _selected = i),
           ),
         _SubmitButton(
           onPressed: _selected == null

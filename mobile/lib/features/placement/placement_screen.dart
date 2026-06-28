@@ -83,7 +83,7 @@ class _PlacementScreenState extends ConsumerState<PlacementScreen> {
                     content: Text('$level\n${result['score']}/${result['total']}'),
                     actions: [
                       TextButton(
-                        onPressed: () => context.go('/levels'),
+                        onPressed: () => context.go('/learn'),
                         child: Text(t.t('continue_')),
                       ),
                     ],

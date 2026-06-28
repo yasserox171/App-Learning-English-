@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/i18n/app_localizations.dart';
 import '../../core/widgets/markdown_text.dart';
+import '../exercises/data/exercise_repository.dart';
 import '../exercises/exercise_view.dart';
 import '../progress/data/progress_repository.dart';
 import 'data/content_repository.dart';
 import 'data/models.dart';
+import 'lesson_result_screen.dart';
 import 'video_player_widget.dart';
 import 'vocabulary_view.dart';
 
@@ -25,6 +27,12 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
   final _controller = PageController();
   int _index = 0;
   bool _finishing = false;
+  bool _finished = false;
+  int _resultPercent = 0;
+
+  // Tally of graded exercise attempts during this lesson run.
+  final Map<String, AttemptResult> _results = {};
+  int _totalExercises = 0;
 
   @override
   void dispose() {
@@ -32,10 +40,12 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
     super.dispose();
   }
 
-  /// Flattens the lesson into one widget per page (one exercise per page;
-  /// final_test expands into its referenced exercises).
+  void _onResult(String id, AttemptResult r) => _results[id] = r;
+
+  /// Flattens the lesson into one widget per page. Vocabulary expands into one
+  /// teaching card per word (+ a practice quiz); exercises are one per page;
+  /// final_test expands into its referenced exercises.
   List<Widget> _buildSteps(LessonDetail l) {
-    // Index every exercise by id so final_test can resolve its references.
     final exById = <String, Map<String, dynamic>>{};
     for (final c in l.components) {
       if (c.type == 'exercise') {
@@ -47,13 +57,30 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
     }
 
     final steps = <Widget>[];
+    var exerciseCount = 0;
+
+    void addExercise(Map<String, dynamic> ex) {
+      steps.add(ExerciseView(
+        exercise: ExerciseItem.fromJson(ex),
+        onResult: _onResult,
+      ));
+      exerciseCount++;
+    }
+
     for (final c in l.components) {
       switch (c.type) {
         case 'text':
           steps.add(MarkdownText((c.payload?['content'] ?? '') as String));
           break;
         case 'vocabulary':
-          steps.add(VocabularyView(items: (c.payload as List?) ?? const []));
+          final list = (c.payload as List?) ?? const [];
+          for (final v in list) {
+            steps.add(VocabularyCard(item: Map<String, dynamic>.from(v as Map)));
+          }
+          final withImages = list
+              .where((v) => (v['image_url'] ?? '').toString().isNotEmpty)
+              .length;
+          if (withImages >= 3) steps.add(VocabularyView(items: list));
           break;
         case 'video':
           final p = c.payload as Map<String, dynamic>?;
@@ -73,16 +100,17 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
               for (final id in ids) {
                 final sub = exById[id as String];
                 if (sub != null && sub['template_code'] != 'pronunciation') {
-                  steps.add(ExerciseView(exercise: ExerciseItem.fromJson(sub)));
+                  addExercise(sub);
                 }
               }
             } else {
-              steps.add(ExerciseView(exercise: ExerciseItem.fromJson(ex)));
+              addExercise(ex);
             }
           }
           break;
       }
     }
+    _totalExercises = exerciseCount;
     return steps;
   }
 
@@ -102,6 +130,17 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (l) {
+          if (_finished) {
+            return LessonResultView(
+              percent: _resultPercent,
+              onRetry: _retry,
+              onContinue: () {
+                ref.invalidate(progressOverviewProvider);
+                context.pop();
+              },
+            );
+          }
+
           final steps = _buildSteps(l);
           final total = steps.length;
           if (total == 0) return Center(child: Text(l.title));
@@ -190,19 +229,37 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
     );
   }
 
+  void _retry() {
+    setState(() {
+      _finished = false;
+      _index = 0;
+      _results.clear();
+    });
+    _controller.jumpToPage(0);
+  }
+
+  int _computePercent() {
+    if (_totalExercises == 0) return 100;
+    final correct = _results.values.where((r) => r.isCorrect).length;
+    return ((correct / _totalExercises) * 100).round();
+  }
+
   Future<void> _finish(String lessonId) async {
     final t = AppLocalizations.of(context);
     setState(() => _finishing = true);
+    final earned = _results.values.fold<int>(0, (a, r) => a + r.score);
     try {
-      await ref
-          .read(progressRepositoryProvider)
-          .updateLesson(lessonId, status: 'completed');
+      await ref.read(progressRepositoryProvider).updateLesson(
+            lessonId,
+            status: 'completed',
+            score: earned,
+          );
       ref.invalidate(progressOverviewProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t.t('completed'))),
-        );
-        context.pop();
+        setState(() {
+          _resultPercent = _computePercent();
+          _finished = true;
+        });
       }
     } catch (e) {
       if (mounted) {

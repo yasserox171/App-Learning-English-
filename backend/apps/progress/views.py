@@ -59,7 +59,7 @@ class ProgressOverviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return Response({"levels": overview(request.user)})
+        return Response(overview(request.user))
 
 
 class LessonProgressView(APIView):

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../settings/settings_storage.dart';
+
 /// Minimal manual i18n (ar/en) with full RTL support, no codegen needed.
 class AppLocalizations {
   AppLocalizations(this.locale);
@@ -65,6 +67,50 @@ class AppLocalizations {
       'tf_false': 'False',
       'tap_word': 'Tap a word',
       'retry': 'Retry',
+      'welcome_user': 'Welcome',
+      'notifications': 'Notifications',
+      'current_level': 'Current level',
+      'continue_learning': 'Continue learning',
+      'continue_lesson': 'Continue lesson',
+      'daily_streak': 'Daily streak',
+      'days': 'days',
+      'xp': 'XP',
+      'learn': 'Learn',
+      'settings': 'Settings',
+      'dark_mode': 'Dark mode',
+      'sound': 'Sound',
+      'about': 'About the app',
+      'share': 'Share',
+      'download_pdf': 'Download (PDF)',
+      'overall_progress': 'Overall progress',
+      'completed_lessons': 'Completed lessons',
+      'remaining_lessons': 'Remaining lessons',
+      'well_done': 'Well done!',
+      'your_result': 'You completed the lesson successfully',
+      'retry_lesson': 'Retry',
+      'what_is_this': 'What is this image?',
+      'remember_me': 'Remember me',
+      'forgot_password': 'Forgot password?',
+      'no_account': "Don't have an account?",
+      'create_account': 'Create account',
+      'have_account': 'Already have an account?',
+      'or_text': 'or',
+      'sign_in_google': 'Continue with Google',
+      'sign_in_apple': 'Continue with Apple',
+      'skip': 'Skip for now',
+      'start_now': 'Start now',
+      'locked_msg': 'Complete the previous one first.',
+      'definition': 'Definition',
+      'example': 'Example',
+      'choose_level': 'Choose your level',
+      'placement_intro': 'A quick test to help us find the level that suits you.',
+      'no_certificates': 'No certificates yet. Complete a level to earn one.',
+      'language': 'Language',
+      'save': 'Save',
+      'loading': 'Loading…',
+      'new_word': 'New word',
+      'points': 'Points',
+      'total_points': 'Total points',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -115,6 +161,50 @@ class AppLocalizations {
       'tf_false': 'خطأ',
       'tap_word': 'اختر كلمة',
       'retry': 'إعادة المحاولة',
+      'welcome_user': 'مرحباً',
+      'notifications': 'الإشعارات',
+      'current_level': 'مستواك الحالي',
+      'continue_learning': 'تابع تعلّمك',
+      'continue_lesson': 'متابعة الدرس',
+      'daily_streak': 'السلسلة اليومية',
+      'days': 'أيام',
+      'xp': 'نقطة',
+      'learn': 'التعلّم',
+      'settings': 'الإعدادات',
+      'dark_mode': 'الوضع الليلي',
+      'sound': 'الصوت',
+      'about': 'حول التطبيق',
+      'share': 'مشاركة',
+      'download_pdf': 'تحميل الشهادة (PDF)',
+      'overall_progress': 'التقدّم العام',
+      'completed_lessons': 'الدروس المكتملة',
+      'remaining_lessons': 'الدروس المتبقية',
+      'well_done': 'أحسنت!',
+      'your_result': 'لقد أكملت الدرس بنجاح',
+      'retry_lesson': 'إعادة المحاولة',
+      'what_is_this': 'ما هذه الصورة؟',
+      'remember_me': 'تذكّرني',
+      'forgot_password': 'نسيت كلمة المرور؟',
+      'no_account': 'ليس لديك حساب؟',
+      'create_account': 'إنشاء حساب',
+      'have_account': 'لديك حساب بالفعل؟',
+      'or_text': 'أو',
+      'sign_in_google': 'المتابعة عبر Google',
+      'sign_in_apple': 'المتابعة عبر Apple',
+      'skip': 'سأجرّب لاحقاً',
+      'start_now': 'ابدأ الآن',
+      'locked_msg': 'أكمل السابق أولاً.',
+      'definition': 'تعريف',
+      'example': 'مثال',
+      'choose_level': 'اختيار تحديد المستوى',
+      'placement_intro': 'اختبار قصير يساعدنا على تحديد مستواك المناسب.',
+      'no_certificates': 'لا توجد شهادات بعد. أكمل مستوى للحصول على شهادة.',
+      'language': 'اللغة',
+      'save': 'حفظ',
+      'loading': 'جارٍ التحميل…',
+      'new_word': 'مفردة جديدة',
+      'points': 'النقاط',
+      'total_points': 'إجمالي النقاط',
     },
   };
 
@@ -138,14 +228,28 @@ class _AppLocalizationsDelegate
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
-/// Holds the chosen UI locale; defaults to Arabic (RTL).
+/// Holds the chosen UI locale; defaults to Arabic (RTL) and persists the choice.
 class LocaleNotifier extends StateNotifier<Locale> {
-  LocaleNotifier() : super(const Locale('ar'));
+  LocaleNotifier(this._storage) : super(const Locale('ar')) {
+    _load();
+  }
 
-  void setLocale(Locale locale) => state = locale;
-  void toggle() =>
-      state = state.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
+  final SettingsStorage _storage;
+
+  Future<void> _load() async {
+    final code = await _storage.locale;
+    if (code == 'en' || code == 'ar') state = Locale(code!);
+  }
+
+  void setLocale(Locale locale) {
+    state = locale;
+    _storage.setLocale(locale.languageCode);
+  }
+
+  void toggle() => setLocale(
+      state.languageCode == 'ar' ? const Locale('en') : const Locale('ar'));
 }
 
-final localeProvider =
-    StateNotifierProvider<LocaleNotifier, Locale>((ref) => LocaleNotifier());
+final localeProvider = StateNotifierProvider<LocaleNotifier, Locale>(
+  (ref) => LocaleNotifier(ref.read(settingsStorageProvider)),
+);
