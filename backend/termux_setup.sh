@@ -45,9 +45,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings')
 django.setup()
 from rest_framework.test import APIClient
 c = APIClient()
-r = c.post('/api/v1/auth/register', {'email':'selfcheck@local','password':'pass12345','full_name':'Check'}, format='json')
+r = c.post('/api/v1/auth/register', {'email':'selfcheck@example.com','password':'pass12345','full_name':'Check'}, format='json', HTTP_HOST='localhost')
 assert r.status_code == 201, f'register failed: {r.status_code} {r.content[:200]}'
-from apps.users.models import User; User.objects.filter(email='selfcheck@local').delete()
+from apps.users.models import User; User.objects.filter(email='selfcheck@example.com').delete()
 print('OK: register works (201)')
 "
 
