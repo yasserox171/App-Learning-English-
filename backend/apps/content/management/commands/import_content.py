@@ -97,9 +97,12 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ #
     def _media_url(self, value):
-        """Rewrite a relative media path to an absolute URL; pass URLs through."""
+        """Rewrite a relative media path to an absolute URL; pass URLs through.
+
+        Falsy values (missing / JSON null) collapse to "" so they satisfy the
+        non-nullable URLField columns (image_url / audio_url / storage_key)."""
         if not value:
-            return value
+            return ""
         if value.startswith("http://") or value.startswith("https://"):
             return value
         return f"{self._media_base}/{self._media_dest}/{value.lstrip('/')}"

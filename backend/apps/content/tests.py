@@ -117,6 +117,32 @@ def test_import_content_creates_full_lesson(seeded, tmp_path):
     assert ex.points == 2
 
 
+def test_import_content_null_image_url(seeded, tmp_path):
+    """Pipeline vocab items may carry `image_url: null` — must not crash."""
+    payload = [{
+        "level": "A1",
+        "unit": {"title": "Null Unit"},
+        "lesson": {"title": "Null Lesson"},
+        "components": [
+            {"type": "vocabulary", "order": 1, "items": [
+                {"word": "What", "translation": "ماذا",
+                 "image_url": None, "audio_url": "audio/what.mp3", "order": 1},
+                {"word": "Hello", "translation": "مرحبا",
+                 "image_url": "images/hi.png", "order": 2},
+            ]},
+        ],
+    }]
+    f = tmp_path / "n.json"
+    f.write_text(json.dumps(payload), encoding="utf-8")
+    call_command("import_content", str(f),
+                 "--media-base-url", "http://x/media", "--media-dest", "d")
+
+    lesson = Lesson.objects.get(title="Null Lesson")
+    vocab = lesson.components.get(type="vocabulary").vocabulary_items
+    assert vocab.get(word="What").image_url == ""  # null -> empty, no crash
+    assert vocab.get(word="Hello").image_url == "http://x/media/d/images/hi.png"
+
+
 def test_import_content_replace_clears_components(seeded, tmp_path):
     payload = {
         "level": "A1",
