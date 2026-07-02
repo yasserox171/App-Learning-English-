@@ -4,10 +4,16 @@ import 'package:video_player/video_player.dart';
 
 /// Plays a lesson video from a network URL (MP4 over http; cleartext enabled).
 class VideoPlayerWidget extends StatefulWidget {
-  const VideoPlayerWidget({super.key, required this.url, this.title});
+  const VideoPlayerWidget({
+    super.key,
+    required this.url,
+    this.title,
+    this.autoPlay = false,
+  });
 
   final String url;
   final String? title;
+  final bool autoPlay;
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -36,7 +42,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         _video = video;
         _chewie = ChewieController(
           videoPlayerController: video,
-          autoPlay: false,
+          autoPlay: widget.autoPlay,
           looping: false,
           aspectRatio: video.value.aspectRatio == 0
               ? 16 / 9

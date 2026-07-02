@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// A rounded violet gradient panel used as a section / page header.
+/// A rounded turquoise gradient panel used as a section / page header.
 class GradientHeader extends StatelessWidget {
   const GradientHeader({
     super.key,
@@ -23,7 +23,7 @@ class GradientHeader extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         gradient: const LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF8B6CFF)],
+          colors: [AppTheme.primary, Color(0xFF3DDCFF)],
           begin: AlignmentDirectional.topStart,
           end: AlignmentDirectional.bottomEnd,
         ),

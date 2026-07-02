@@ -38,9 +38,17 @@ def test_level_units(auth_client):
     level = Level.objects.get(code="A1")
     resp = auth_client.get(reverse("v1:level-units", args=[level.id]))
     assert resp.status_code == 200
-    # Enriched list: plain array with per-unit progress + lock state.
+    # Enriched list: per-unit progress + lock state + embedded lesson rows.
     assert len(resp.data) >= 1
-    assert {"percent", "locked", "completed", "total"} <= set(resp.data[0])
+    unit = resp.data[0]
+    assert {"percent", "locked", "completed", "total", "thumbnail", "lessons"} <= set(unit)
+    lesson = unit["lessons"][0]
+    assert {"status", "percent", "locked", "thumbnail", "steps"} <= set(lesson)
+    # Seeded lesson has vocab images + video + exercises -> derived data exists.
+    assert lesson["thumbnail"].startswith("http")
+    step_types = [s["type"] for s in lesson["steps"]]
+    assert "vocabulary" in step_types and "exercise" in step_types
+    assert all(s["minutes"] >= 1 for s in lesson["steps"])
 
 
 def test_unit_lessons(auth_client):
@@ -48,7 +56,7 @@ def test_unit_lessons(auth_client):
     resp = auth_client.get(reverse("v1:unit-lessons", args=[unit.id]))
     assert resp.status_code == 200
     assert len(resp.data) >= 1
-    assert {"status", "percent", "locked"} <= set(resp.data[0])
+    assert {"status", "percent", "locked", "thumbnail", "steps"} <= set(resp.data[0])
     assert resp.data[0]["locked"] is False  # first lesson always open
 
 

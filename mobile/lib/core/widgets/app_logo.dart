@@ -17,7 +17,7 @@ class AppLogo extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * 0.28),
         gradient: const LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF8B6CFF)],
+          colors: [AppTheme.primary, Color(0xFF3DDCFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

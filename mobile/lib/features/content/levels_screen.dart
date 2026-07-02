@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/home_shell.dart';
+import '../../core/widgets/level_seal.dart';
 import '../../core/widgets/status_badge.dart';
 import '../progress/data/progress_repository.dart';
 import 'data/content_repository.dart';
@@ -57,7 +58,7 @@ class LevelsScreen extends ConsumerWidget {
                       );
                       return;
                     }
-                    context.push('/levels/${lvl.id}/units');
+                    context.push('/levels/${lvl.id}/units', extra: lvl);
                   },
                 ),
             ],
@@ -103,20 +104,10 @@ class _LevelCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(locked ? 1 : 0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(code,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: locked ? scheme.onSurfaceVariant : badgeColor,
-                    )),
+              LevelSeal(
+                code: code,
+                size: 60,
+                color: locked ? scheme.outlineVariant : badgeColor,
               ),
               const SizedBox(width: 14),
               Expanded(

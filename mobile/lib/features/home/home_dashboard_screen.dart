@@ -164,15 +164,19 @@ class _ContinueCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent.withOpacity(0.18),
+                if (next.thumbnail.isNotEmpty)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.menu_book_rounded,
-                      color: AppTheme.accent),
-                ),
+                    child: Image.network(
+                      next.thumbnail,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const _ContinueIcon(),
+                    ),
+                  )
+                else
+                  const _ContinueIcon(),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -214,6 +218,22 @@ class _ContinueCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ContinueIcon extends StatelessWidget {
+  const _ContinueIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Icon(Icons.menu_book_rounded, color: AppTheme.accent),
     );
   }
 }

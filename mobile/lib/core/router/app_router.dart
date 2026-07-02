@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
+import '../../features/content/data/models.dart';
 import '../../features/content/lesson_player_screen.dart';
-import '../../features/content/lessons_screen.dart';
+import '../../features/content/lesson_steps_screen.dart';
+import '../../features/content/level_path_screen.dart';
 import '../../features/content/levels_screen.dart';
-import '../../features/content/units_screen.dart';
 import '../../features/home/home_dashboard_screen.dart';
 import '../../features/onboarding/language_screen.dart';
 import '../../features/onboarding/splash_screen.dart';
@@ -76,17 +77,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/levels/:id/units',
-        builder: (_, s) => UnitsScreen(levelId: s.pathParameters['id']!),
-      ),
-      GoRoute(
-        parentNavigatorKey: _rootKey,
-        path: '/units/:id/lessons',
-        builder: (_, s) => LessonsScreen(unitId: s.pathParameters['id']!),
+        builder: (_, s) => LevelPathScreen(
+          levelId: s.pathParameters['id']!,
+          level: s.extra is Level ? s.extra as Level : null,
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,
         path: '/lessons/:id',
-        builder: (_, s) => LessonPlayerScreen(lessonId: s.pathParameters['id']!),
+        builder: (_, s) => LessonStepsScreen(
+          lessonId: s.pathParameters['id']!,
+          summary: s.extra is LessonSummary ? s.extra as LessonSummary : null,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/lessons/:id/play',
+        builder: (_, s) => LessonPlayerScreen(
+          lessonId: s.pathParameters['id']!,
+          initialIndex:
+              int.tryParse(s.uri.queryParameters['step'] ?? '') ?? 0,
+        ),
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,

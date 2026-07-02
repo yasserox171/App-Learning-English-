@@ -10,7 +10,7 @@ from django.db.models import Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from apps.content.models import Lesson, Level, Unit
+from apps.content.models import Lesson, LessonComponent, Level, Unit
 
 from .models import Certificate, PlacementResult, Progress
 
@@ -125,26 +125,78 @@ def continue_lesson(user) -> dict | None:
         "unit_title": lesson.unit.title,
         "level_code": lesson.unit.level.code,
         "percent": _STATUS_PERCENT[Progress.Status.IN_PROGRESS],
+        "thumbnail": _lesson_thumbnail(lesson),
     }
 
 
+def _lesson_thumbnail(lesson) -> str:
+    """First non-empty vocabulary image in the lesson — used as its card image."""
+    for component in sorted(lesson.components.all(), key=lambda c: c.order):
+        if component.type != LessonComponent.Type.VOCABULARY:
+            continue
+        for item in component.vocabulary_items.all():
+            if item.image_url:
+                return item.image_url
+    return ""
+
+
+def _lesson_steps(lesson) -> list:
+    """Ordered step summary [{type, count, minutes}] derived from components.
+
+    Pronunciation and final_test exercises are excluded from the count (the
+    app hides the former and expands the latter into its referenced items)."""
+    steps = []
+    for component in sorted(lesson.components.all(), key=lambda c: c.order):
+        ctype = component.type
+        if ctype == LessonComponent.Type.TEXT:
+            steps.append({"type": "text", "count": 1, "minutes": 1})
+        elif ctype == LessonComponent.Type.VOCABULARY:
+            n = len(component.vocabulary_items.all())
+            if n:
+                steps.append(
+                    {"type": "vocabulary", "count": n, "minutes": max(1, n // 4)}
+                )
+        elif ctype == LessonComponent.Type.VIDEO:
+            video = getattr(component, "video", None)
+            if video:
+                steps.append(
+                    {
+                        "type": "video",
+                        "count": 1,
+                        "minutes": max(1, (video.duration or 0) // 60),
+                    }
+                )
+        elif ctype == LessonComponent.Type.EXERCISE:
+            n = sum(
+                1
+                for e in component.exercises.all()
+                if e.template.code not in ("pronunciation", "final_test")
+            )
+            if n:
+                steps.append(
+                    {"type": "exercise", "count": n, "minutes": max(1, round(n * 0.7))}
+                )
+    return steps
+
+
 def units_overview(user, level_id) -> list:
-    """Units of a level with per-unit progress and sequential lock state."""
+    """Units of a level with progress, lock state, and embedded lesson rows —
+    one response builds the whole level path (ABA-style timeline)."""
     units = list(Unit.objects.filter(level_id=level_id).order_by("order"))
     result = []
     prev_completed = True
     for i, unit in enumerate(units):
-        lesson_ids = list(
-            Lesson.objects.filter(unit=unit).values_list("id", flat=True)
+        lessons = lessons_overview(user, unit.id)
+        total = len(lessons)
+        completed = sum(
+            1 for l in lessons if l["status"] == Progress.Status.COMPLETED
         )
-        total = len(lesson_ids)
-        completed = Progress.objects.filter(
-            user=user,
-            lesson_id__in=lesson_ids,
-            status=Progress.Status.COMPLETED,
-        ).count()
         percent = round((completed / total) * 100) if total else 0
         is_completed = total > 0 and completed == total
+        locked = not (i == 0 or prev_completed)
+        if locked:  # a locked unit locks all its lessons
+            for l in lessons:
+                l["locked"] = True
         result.append(
             {
                 "id": str(unit.id),
@@ -155,7 +207,11 @@ def units_overview(user, level_id) -> list:
                 "completed": completed,
                 "percent": percent,
                 "is_completed": is_completed,
-                "locked": not (i == 0 or prev_completed),
+                "locked": locked,
+                "thumbnail": next(
+                    (l["thumbnail"] for l in lessons if l["thumbnail"]), ""
+                ),
+                "lessons": lessons,
             }
         )
         prev_completed = is_completed
@@ -164,7 +220,15 @@ def units_overview(user, level_id) -> list:
 
 def lessons_overview(user, unit_id) -> list:
     """Lessons of a unit with per-lesson status/percent and sequential lock."""
-    lessons = list(Lesson.objects.filter(unit_id=unit_id).order_by("order"))
+    lessons = list(
+        Lesson.objects.filter(unit_id=unit_id)
+        .order_by("order")
+        .prefetch_related(
+            "components__vocabulary_items",
+            "components__video",
+            "components__exercises__template",
+        )
+    )
     by_lesson = {
         p.lesson_id: p
         for p in Progress.objects.filter(user=user, lesson__unit_id=unit_id)
@@ -183,6 +247,8 @@ def lessons_overview(user, unit_id) -> list:
                 "status": status,
                 "percent": _STATUS_PERCENT.get(status, 0),
                 "locked": not (i == 0 or prev_completed),
+                "thumbnail": _lesson_thumbnail(lesson),
+                "steps": _lesson_steps(lesson),
             }
         )
         prev_completed = status == Progress.Status.COMPLETED

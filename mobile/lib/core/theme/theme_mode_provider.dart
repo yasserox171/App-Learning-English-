@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../settings/settings_storage.dart';
 
-/// Holds the active [ThemeMode]; defaults to dark (matches the design) and
+/// Holds the active [ThemeMode]; defaults to light (ABA-style identity) and
 /// persists the user's choice.
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier(this._storage) : super(ThemeMode.dark) {
+  ThemeModeNotifier(this._storage) : super(ThemeMode.light) {
     _load();
   }
 
@@ -14,14 +14,14 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
   Future<void> _load() async {
     switch (await _storage.themeMode) {
-      case 'light':
-        state = ThemeMode.light;
+      case 'dark':
+        state = ThemeMode.dark;
         break;
       case 'system':
         state = ThemeMode.system;
         break;
       default:
-        state = ThemeMode.dark;
+        state = ThemeMode.light;
     }
   }
 

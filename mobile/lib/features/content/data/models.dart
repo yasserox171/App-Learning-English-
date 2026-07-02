@@ -32,6 +32,8 @@ class Unit {
     this.total = 0,
     this.isCompleted = false,
     this.locked = false,
+    this.thumbnail = '',
+    this.lessons = const [],
   });
 
   final String id;
@@ -42,6 +44,8 @@ class Unit {
   final int total;
   final bool isCompleted;
   final bool locked;
+  final String thumbnail;
+  final List<LessonSummary> lessons;
 
   factory Unit.fromJson(Map<String, dynamic> j) => Unit(
         id: j['id'],
@@ -52,6 +56,26 @@ class Unit {
         total: j['total'] ?? 0,
         isCompleted: j['is_completed'] ?? false,
         locked: j['locked'] ?? false,
+        thumbnail: j['thumbnail'] ?? '',
+        lessons: ((j['lessons'] as List?) ?? const [])
+            .map((e) => LessonSummary.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// One derived lesson step (video / vocabulary / exercise / text) with an
+/// estimated duration in minutes.
+class LessonStepInfo {
+  LessonStepInfo({required this.type, required this.count, required this.minutes});
+
+  final String type;
+  final int count;
+  final int minutes;
+
+  factory LessonStepInfo.fromJson(Map<String, dynamic> j) => LessonStepInfo(
+        type: j['type'] ?? '',
+        count: j['count'] ?? 0,
+        minutes: j['minutes'] ?? 1,
       );
 }
 
@@ -63,6 +87,8 @@ class LessonSummary {
     this.status = 'not_started',
     this.percent = 0,
     this.locked = false,
+    this.thumbnail = '',
+    this.steps = const [],
   });
 
   final String id;
@@ -71,6 +97,8 @@ class LessonSummary {
   final String status;
   final int percent;
   final bool locked;
+  final String thumbnail;
+  final List<LessonStepInfo> steps;
 
   bool get isCompleted => status == 'completed';
 
@@ -81,6 +109,10 @@ class LessonSummary {
         status: j['status'] ?? 'not_started',
         percent: j['percent'] ?? 0,
         locked: j['locked'] ?? false,
+        thumbnail: j['thumbnail'] ?? '',
+        steps: ((j['steps'] as List?) ?? const [])
+            .map((e) => LessonStepInfo.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }
 

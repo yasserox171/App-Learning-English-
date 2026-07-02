@@ -47,6 +47,7 @@ class ContinueLesson {
     required this.unitTitle,
     required this.levelCode,
     required this.percent,
+    this.thumbnail = '',
   });
 
   final String lessonId;
@@ -54,6 +55,7 @@ class ContinueLesson {
   final String unitTitle;
   final String levelCode;
   final int percent;
+  final String thumbnail;
 
   factory ContinueLesson.fromJson(Map<String, dynamic> j) => ContinueLesson(
         lessonId: j['lesson_id'],
@@ -61,6 +63,7 @@ class ContinueLesson {
         unitTitle: j['unit_title'] ?? '',
         levelCode: j['level_code'] ?? '',
         percent: j['percent'] ?? 0,
+        thumbnail: j['thumbnail'] ?? '',
       );
 }
 
