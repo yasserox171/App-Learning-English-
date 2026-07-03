@@ -1,6 +1,8 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/feedback/feedback_service.dart';
 import '../../core/i18n/app_localizations.dart';
@@ -43,6 +45,7 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
   final Set<int> _eliminated = {};
   int _shake = 0;
   int _flash = 0;
+  int _wrongCount = 0; // drives dictation's "hint after N attempts"
 
   void _speak(String text) => ref.read(ttsServiceProvider).speak(text);
 
@@ -59,6 +62,7 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
           _flash++;
         } else {
           _shake++;
+          _wrongCount++;
         }
       });
       widget.onResult?.call(widget.exercise.id, res);
@@ -141,6 +145,22 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
       case 'reorder':
         body = _ReorderExercise(content: ex.content, onSubmit: _submit);
         break;
+      case 'dictation':
+        body = _DictationExercise(
+          content: ex.content,
+          onSubmit: _submit,
+          onSpeak: _speak,
+          wrongAttempts: _wrongCount,
+        );
+        break;
+      case 'pronunciation':
+        body = _PronunciationExercise(
+          content: ex.content,
+          onSubmit: _submit,
+          onSpeak: _speak,
+          onSkip: widget.onAdvance,
+        );
+        break;
       default:
         body = Text('Unsupported: ${ex.templateCode}');
     }
@@ -174,7 +194,10 @@ class _ExerciseViewState extends ConsumerState<ExerciseView> {
                       child: Text('💡 $_hintText'),
                     ),
                   ),
-                if (_result == null && _hintLevel < 2)
+                if (_result == null &&
+                    _hintLevel < 2 &&
+                    ex.templateCode != 'dictation' &&
+                    ex.templateCode != 'pronunciation')
                   Align(
                     alignment: AlignmentDirectional.centerStart,
                     child: TextButton.icon(
@@ -649,6 +672,382 @@ class _SubmitButton extends StatelessWidget {
           child: Text(AppLocalizations.of(context).t('check')),
         ),
       ),
+    );
+  }
+}
+
+/// Dictation (UX prompt 5.3): play the audio, type what you hear. A text hint
+/// from the content appears after N wrong attempts.
+class _DictationExercise extends StatefulWidget {
+  const _DictationExercise({
+    required this.content,
+    required this.onSubmit,
+    required this.onSpeak,
+    required this.wrongAttempts,
+  });
+
+  final Map<String, dynamic> content;
+  final OnSubmit onSubmit;
+  final void Function(String) onSpeak;
+  final int wrongAttempts;
+
+  @override
+  State<_DictationExercise> createState() => _DictationExerciseState();
+}
+
+class _DictationExerciseState extends State<_DictationExercise> {
+  final _ctrl = TextEditingController();
+  final AudioPlayer _audio = AudioPlayer();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _audio.dispose();
+    super.dispose();
+  }
+
+  Future<void> _play() async {
+    final url = (widget.content['audio_url'] ?? '').toString();
+    if (url.isNotEmpty) {
+      try {
+        await _audio.stop();
+        await _audio.play(UrlSource(url));
+        return;
+      } catch (_) {/* fall through to TTS */}
+    }
+    final text = (widget.content['audio_text'] ?? '').toString();
+    if (text.isNotEmpty) widget.onSpeak(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final hint = (widget.content['hint'] ?? '').toString();
+    final showAfter =
+        (widget.content['show_hint_after_attempts'] ?? 2) as int;
+    final showHint = hint.isNotEmpty && widget.wrongAttempts >= showAfter;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: EdgeInsets.zero,
+              ),
+              onPressed: _play,
+              child: const Icon(Icons.volume_up_rounded, size: 36),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(t.t('write_what_you_hear'),
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _ctrl,
+          textDirection: TextDirection.ltr,
+          decoration: InputDecoration(hintText: '…'),
+        ),
+        if (showHint)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text('👁️ ${t.t('hint')}: $hint'),
+            ),
+          ),
+        _SubmitButton(
+          onPressed: () => widget.onSubmit({'answer': _ctrl.text}),
+        ),
+      ],
+    );
+  }
+}
+
+/// Mirrors the backend's tolerant scorer so the UI can tier feedback locally
+/// (excellent / almost / retry) before the server records the attempt.
+double _pronunciationScore(String spoken, String target) {
+  String phon(String s) {
+    var x = s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');
+    x = x.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return x.replaceAll('th', 'θ');
+  }
+
+  const tolerated = {
+    'θs', 'sθ', 'θz', 'zθ', 'θt', 'tθ',
+    'pb', 'bp', 'vf', 'fv', 'gj', 'jg', 'ei', 'ie', 'ou', 'uo',
+  };
+  final a = phon(spoken), b = phon(target);
+  if (b.isEmpty) return 0;
+  if (a == b) return 1;
+
+  final n = a.length, m = b.length;
+  var prev = List<double>.generate(m + 1, (j) => j.toDouble());
+  for (var i = 1; i <= n; i++) {
+    final cur = List<double>.filled(m + 1, 0)..[0] = i.toDouble();
+    for (var j = 1; j <= m; j++) {
+      final ca = a[i - 1], cb = b[j - 1];
+      final sub = ca == cb
+          ? 0.0
+          : (tolerated.contains('$ca$cb') ? 0.3 : 1.0);
+      cur[j] = [
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + sub,
+      ].reduce((x, y) => x < y ? x : y);
+    }
+    prev = cur;
+  }
+  final dist = prev[m];
+  final len = n > m ? n : m;
+  final score = 1 - dist / len;
+  return score < 0 ? 0 : score;
+}
+
+/// Pronunciation training (UX prompt feature 11): listen to the model, record
+/// with the mic, get tiered tolerant feedback. Attempt 2 reveals syllables,
+/// attempt 3 an Arabic tip; after 3 attempts a no-penalty skip appears.
+class _PronunciationExercise extends StatefulWidget {
+  const _PronunciationExercise({
+    required this.content,
+    required this.onSubmit,
+    required this.onSpeak,
+    this.onSkip,
+  });
+
+  final Map<String, dynamic> content;
+  final OnSubmit onSubmit;
+  final void Function(String) onSpeak;
+  final VoidCallback? onSkip;
+
+  @override
+  State<_PronunciationExercise> createState() =>
+      _PronunciationExerciseState();
+}
+
+class _PronunciationExerciseState extends State<_PronunciationExercise> {
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  final AudioPlayer _audio = AudioPlayer();
+  bool _sttAvailable = true;
+  bool _listening = false;
+  int _attempts = 0;
+  String _heard = '';
+  double? _score;
+
+  String get _target => (widget.content['target_text'] ?? '').toString();
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _audio.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playModel() async {
+    final url = (widget.content['reference_audio_url'] ?? '').toString();
+    if (url.isNotEmpty) {
+      try {
+        await _audio.stop();
+        await _audio.play(UrlSource(url));
+        return;
+      } catch (_) {/* fall through to TTS */}
+    }
+    widget.onSpeak(_target);
+  }
+
+  Future<void> _record() async {
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+    final ok = await _speech.initialize(
+      onError: (_) {
+        if (mounted) setState(() => _listening = false);
+      },
+    );
+    if (!ok) {
+      if (mounted) setState(() => _sttAvailable = false);
+      return;
+    }
+    setState(() {
+      _listening = true;
+      _heard = '';
+    });
+    await _speech.listen(
+      localeId: 'en_US',
+      listenFor: const Duration(seconds: 6),
+      onResult: (r) {
+        if (r.finalResult) _onHeard(r.recognizedWords);
+      },
+    );
+  }
+
+  Future<void> _onHeard(String words) async {
+    await _speech.stop();
+    if (!mounted) return;
+    final score = _pronunciationScore(words, _target);
+    setState(() {
+      _listening = false;
+      _heard = words;
+      _score = score;
+      _attempts++;
+    });
+    // Server records the attempt and awards partial credit.
+    widget.onSubmit({'spoken_text': words});
+  }
+
+  List<String> get _syllables {
+    final s = (widget.content['syllables'] ?? '').toString();
+    if (s.isNotEmpty) return s.split(RegExp(r'[-\s]+'));
+    return _target.split(' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final tip = (widget.content['pronunciation_tip_ar'] ?? '').toString();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Text('🎯 ${t.t('pronounce_word')}',
+              style: Theme.of(context).textTheme.titleMedium),
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: Text(
+            _target.toUpperCase(),
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.ltr,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: OutlinedButton.icon(
+            onPressed: _playModel,
+            icon: const Icon(Icons.volume_up_rounded),
+            label: Text(t.t('listen_model')),
+          ),
+        ),
+        const SizedBox(height: 14),
+        if (_sttAvailable)
+          Center(
+            child: GestureDetector(
+              onTap: _record,
+              child: Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _listening ? AppTheme.danger : AppTheme.primary,
+                ),
+                child: Icon(
+                  _listening ? Icons.stop_rounded : Icons.mic_rounded,
+                  size: 42,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          )
+        else
+          Center(
+            child: Text(t.t('mic_unavailable'),
+                style: TextStyle(color: scheme.onSurfaceVariant)),
+          ),
+        const SizedBox(height: 6),
+        Center(
+          child: Text(
+            _listening
+                ? t.t('recording')
+                : '${t.t('attempt')}: ${_attempts + 1} ${t.t('of')} 3',
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+        ),
+        if (_score != null && _heard.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: (_score! >= 0.7
+                      ? AppTheme.success
+                      : _score! >= 0.5
+                          ? AppTheme.accent
+                          : AppTheme.danger)
+                  .withOpacity(0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _score! >= 0.9
+                      ? '✅ ${t.t('excellent')}'
+                      : _score! >= 0.7
+                          ? '✅ ${t.t('very_good')}'
+                          : _score! >= 0.5
+                              ? '⚠️ ${t.t('almost')}'
+                              : '❌ ${t.t('try_again')}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text('🗣 "$_heard"', textDirection: TextDirection.ltr),
+              ],
+            ),
+          ),
+        ],
+        if (_attempts >= 1 && _score != null && _score! < 0.7) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: [
+              for (final syl in _syllables)
+                ActionChip(
+                  label: Text(syl.toUpperCase(),
+                      textDirection: TextDirection.ltr),
+                  onPressed: () => widget.onSpeak(syl),
+                ),
+            ],
+          ),
+        ],
+        if (_attempts >= 2 && _score != null && _score! < 0.7) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+                '💡 ${tip.isNotEmpty ? tip : t.t('pron_tip_generic')}'),
+          ),
+        ],
+        if ((!_sttAvailable || _attempts >= 3) && widget.onSkip != null) ...[
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: widget.onSkip,
+            child: Text('${t.t('skip_step')} ←'),
+          ),
+        ],
+      ],
     );
   }
 }

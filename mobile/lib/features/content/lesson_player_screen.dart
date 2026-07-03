@@ -113,6 +113,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
           url: spec.videoUrl!,
           title: spec.videoTitle,
           backdrop: backdrop,
+          segments: spec.videoSegments,
         );
       case 'exercise':
         return ExerciseView(
@@ -424,11 +425,17 @@ class _PhaseBar extends StatelessWidget {
 /// title and a big turquoise play button; tapping it swaps in the real player
 /// with autoplay.
 class _VideoIntroPage extends StatefulWidget {
-  const _VideoIntroPage({required this.url, this.title, this.backdrop = ''});
+  const _VideoIntroPage({
+    required this.url,
+    this.title,
+    this.backdrop = '',
+    this.segments = const [],
+  });
 
   final String url;
   final String? title;
   final String backdrop;
+  final List segments;
 
   @override
   State<_VideoIntroPage> createState() => _VideoIntroPageState();
@@ -441,7 +448,11 @@ class _VideoIntroPageState extends State<_VideoIntroPage> {
   Widget build(BuildContext context) {
     if (_playing) {
       return VideoPlayerWidget(
-          url: widget.url, title: widget.title, autoPlay: true);
+        url: widget.url,
+        title: widget.title,
+        autoPlay: true,
+        segments: widget.segments,
+      );
     }
     final t = AppLocalizations.of(context);
     return ClipRRect(

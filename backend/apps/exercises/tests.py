@@ -138,3 +138,55 @@ def test_attempt_requires_auth(seeded):
         format="json",
     )
     assert resp.status_code == 401
+
+
+# --- Batch 2: dictation + tolerant pronunciation ---------------------------- #
+def test_dictation_corrector_normalizes():
+    from apps.exercises.correctors import get_corrector
+
+    c = get_corrector("dictation")
+    content = {"answer": "Good morning"}
+    assert c.check(content, {"answer": "good morning"}) == (True, 1.0)
+    assert c.check(content, {"answer": "  Good, morning! "})[0] is True
+    assert c.check(content, {"answer": "good night"})[0] is False
+
+
+def test_pronunciation_tolerant_scoring():
+    from apps.exercises.correctors import pronunciation_score
+
+    # Exact match.
+    assert pronunciation_score("good morning", "Good morning") == 1.0
+    # Classic Arabic-speaker confusions pass the 70% bar.
+    assert pronunciation_score("bark", "park") >= 0.7      # p -> b
+    assert pronunciation_score("fery good", "very good") >= 0.7  # v -> f
+    assert pronunciation_score("sink", "think") >= 0.7     # th -> s
+    # Nonsense stays well below the bar.
+    assert pronunciation_score("banana", "good morning") < 0.5
+
+
+def test_pronunciation_attempt_recorded(auth_client):
+    from apps.content.models import LessonComponent
+    from apps.exercises.models import (
+        Exercise,
+        ExerciseTemplate,
+        PronunciationAttempt,
+    )
+    from django.urls import reverse
+
+    client, user = auth_client
+    component = LessonComponent.objects.filter(type="exercise").first()
+    template = ExerciseTemplate.objects.get(code="pronunciation")
+    ex = Exercise.objects.create(
+        component=component,
+        template=template,
+        content={"target_text": "Good morning"},
+        points=1,
+    )
+    resp = client.post(
+        reverse("v1:exercise-attempt", args=[ex.id]),
+        {"answer": {"spoken_text": "good morning"}},
+        format="json",
+    )
+    assert resp.status_code == 201 and resp.data["is_correct"] is True
+    row = PronunciationAttempt.objects.get(user=user, exercise=ex)
+    assert row.passed is True and row.attempt_number == 1

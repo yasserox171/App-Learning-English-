@@ -106,6 +106,9 @@ class Video(BaseModel):
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PROCESSING
     )
+    # Optional timed transcript: {"segments": [{"start", "end",
+    # "narration_en", "subtitle_ar"}, ...]} — powers in-player subtitles.
+    script = models.JSONField(default=dict, blank=True)
 
     class Meta:
         db_table = "videos"
@@ -123,6 +126,10 @@ class VocabularyItem(BaseModel):
     audio_url = models.URLField(blank=True)
     image_url = models.URLField(blank=True)
     example_sentence = models.TextField(blank=True)
+    # Pronunciation-training aids (optional; used by the mic exercise).
+    syllables = models.CharField(max_length=100, blank=True)
+    pronunciation_tip_ar = models.TextField(blank=True)
+    difficulty = models.CharField(max_length=10, blank=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:

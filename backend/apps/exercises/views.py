@@ -39,6 +39,25 @@ class AttemptView(APIView):
             score=score,
         )
 
+        # Keep a pronunciation log for later error analysis (feature 11).
+        if exercise.template.code == "pronunciation" and isinstance(answer, dict):
+            spoken = answer.get("spoken_text", answer.get("transcript"))
+            if spoken is not None:
+                from .models import PronunciationAttempt
+
+                PronunciationAttempt.objects.create(
+                    user=request.user,
+                    exercise=exercise,
+                    spoken_text=str(spoken),
+                    target_text=exercise.content.get("target_text", ""),
+                    score=fraction,
+                    passed=is_correct,
+                    attempt_number=PronunciationAttempt.objects.filter(
+                        user=request.user, exercise=exercise
+                    ).count()
+                    + 1,
+                )
+
         payload = {
             "attempt_id": str(attempt.id),
             "is_correct": is_correct,

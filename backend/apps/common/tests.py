@@ -19,8 +19,8 @@ def test_seed_creates_six_levels(seeded):
     }
 
 
-def test_seed_creates_eight_templates(seeded):
-    assert ExerciseTemplate.objects.count() == 8
+def test_seed_creates_nine_templates(seeded):
+    assert ExerciseTemplate.objects.count() == 9
 
 
 def test_seed_creates_one_exercise_per_template(seeded):
@@ -28,14 +28,15 @@ def test_seed_creates_one_exercise_per_template(seeded):
     used = set(
         Exercise.objects.values_list("template__code", flat=True)
     )
-    # Every template appears at least once in the sample lesson.
-    assert codes == used
+    # Every template appears in the sample lesson except dictation (it exists
+    # for imported/authored content, not the seed demo).
+    assert codes - used <= {"dictation"}
 
 
 def test_seed_is_idempotent(seeded):
     call_command("seed")
     assert Level.objects.count() == 6
-    assert ExerciseTemplate.objects.count() == 8
+    assert ExerciseTemplate.objects.count() == 9
 
 
 def test_sample_lesson_components_ordered(seeded):

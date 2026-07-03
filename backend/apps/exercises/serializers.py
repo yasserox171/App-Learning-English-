@@ -58,6 +58,11 @@ class ExerciseSerializer(serializers.ModelSerializer):
             if isinstance(idx, int) and 0 <= idx < len(options):
                 content["audio_text"] = options[idx]
 
+        # dictation: the client SPEAKS the answer (that's the exercise) but
+        # never sees it in text form.
+        if code == "dictation" and not content.get("audio_url"):
+            content["audio_text"] = str(content.get("answer", ""))
+
         # fill_blank: provide a tappable word bank (answer + distractors).
         if code == "fill_blank" and not content.get("options"):
             answer = str(content.get("answer", "")).strip()

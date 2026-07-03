@@ -96,6 +96,15 @@ TEMPLATES = [
                         "reference_audio_url": {"type": "string"}}},
     ),
     (
+        "dictation", "Dictation",
+        {"type": "object",
+         "required": ["answer"],
+         "properties": {"audio_url": {"type": "string"},
+                        "answer": {"type": "string"},
+                        "hint": {"type": "string"},
+                        "show_hint_after_attempts": {"type": "integer"}}},
+    ),
+    (
         "final_test", "Final Test",
         {"type": "object",
          "required": ["exercise_ids"],

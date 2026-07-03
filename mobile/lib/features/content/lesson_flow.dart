@@ -11,6 +11,7 @@ class LessonPageSpec {
     this.vocabItems,
     this.videoUrl,
     this.videoTitle,
+    this.videoSegments = const [],
     this.exercise,
   });
 
@@ -21,6 +22,7 @@ class LessonPageSpec {
   final List? vocabItems;
   final String? videoUrl;
   final String? videoTitle;
+  final List videoSegments;
   final Map<String, dynamic>? exercise;
 }
 
@@ -101,7 +103,8 @@ class LessonFlow {
             pages.add(LessonPageSpec(
                 kind: 'video',
                 videoUrl: url,
-                videoTitle: p?['title'] as String?));
+                videoTitle: p?['title'] as String?,
+                videoSegments: (p?['segments'] as List?) ?? const []));
             final seconds = (p?['duration'] ?? 0) as int;
             sections.add(LessonSection(
               type: 'video',
@@ -119,7 +122,6 @@ class LessonFlow {
           for (final e in (c.payload as List? ?? const [])) {
             final ex = e as Map<String, dynamic>;
             final code = ex['template_code'];
-            if (code == 'pronunciation') continue; // removed exercise type
             if (code == 'final_test') {
               final ids =
                   (ex['content']?['exercise_ids'] as List?) ?? const [];
@@ -135,7 +137,9 @@ class LessonFlow {
             } else {
               pages.add(LessonPageSpec(kind: 'exercise', exercise: ex));
               regular++;
-              exerciseCount++;
+              // Pronunciation is skippable without penalty, so it doesn't
+              // count toward the lesson score denominator.
+              if (code != 'pronunciation') exerciseCount++;
             }
           }
           if (regular > 0) {

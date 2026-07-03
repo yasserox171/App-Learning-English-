@@ -17,6 +17,7 @@ Expected answer shapes (sent by the client to the attempt endpoint):
 """
 from __future__ import annotations
 
+import re
 from typing import Tuple
 
 Result = Tuple[bool, float]
@@ -109,22 +110,86 @@ class ListeningCorrector(Corrector):
         return correct, 1.0 if correct else 0.0
 
 
+def _phonetic(text: str) -> str:
+    """Lowercase, strip punctuation, and fold 'th' to one symbol so the
+    tolerant distance can treat th/s/z (etc.) as near-misses."""
+    t = re.sub(r"[^a-z0-9 ]", "", _norm(text))
+    return re.sub(r"\s+", " ", t).replace("th", "θ").strip()
+
+# Common Arabic-speaker confusions: substitutions between these pairs cost a
+# fraction of a full edit (UX prompt feature 11 — phonetic tolerance).
+_TOLERATED = {
+    frozenset(p)
+    for p in [
+        ("θ", "s"), ("θ", "z"), ("θ", "t"),
+        ("p", "b"), ("v", "f"), ("g", "j"), ("e", "i"), ("o", "u"),
+    ]
+}
+_TOLERATED_COST = 0.3
+
+
+def _tolerant_distance(a: str, b: str) -> float:
+    """Levenshtein with reduced substitution cost for tolerated confusions."""
+    n, m = len(a), len(b)
+    prev = [float(j) for j in range(m + 1)]
+    for i in range(1, n + 1):
+        cur = [float(i)] + [0.0] * m
+        for j in range(1, m + 1):
+            if a[i - 1] == b[j - 1]:
+                sub = 0.0
+            elif frozenset((a[i - 1], b[j - 1])) in _TOLERATED:
+                sub = _TOLERATED_COST
+            else:
+                sub = 1.0
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + sub)
+        prev = cur
+    return prev[m]
+
+
+def pronunciation_score(spoken: str, target: str) -> float:
+    """0..1 similarity, forgiving of common Arabic-speaker mispronunciations."""
+    s, t = _phonetic(spoken), _phonetic(target)
+    if not t:
+        return 0.0
+    if s == t:
+        return 1.0
+    dist = _tolerant_distance(s, t)
+    return max(0.0, 1.0 - dist / max(len(s), len(t)))
+
+
 @register("pronunciation")
 class PronunciationCorrector(Corrector):
-    """MVP: simplified. Exact-ish transcript match, else accept a recording.
+    """Flexible mic scoring: Levenshtein + Arabic phonetic tolerance.
 
-    Advanced audio analysis is a later phase (master prompt §9).
-    """
+    Accepts {"spoken_text": str} (or legacy {"transcript": str}); pass mark is
+    70%, with partial credit equal to the similarity score."""
+
+    PASS = 0.7
 
     def check(self, content, answer):
-        transcript = answer.get("transcript")
-        if transcript is not None:
-            correct = _norm(transcript) == _norm(content.get("target_text", ""))
-            return correct, 1.0 if correct else 0.0
+        spoken = answer.get("spoken_text", answer.get("transcript"))
+        if spoken is not None:
+            score = pronunciation_score(str(spoken), content.get("target_text", ""))
+            return score >= self.PASS, score
         # No transcript: lenient credit for having recorded an attempt.
         if answer.get("recorded"):
             return True, 1.0
         return False, 0.0
+
+
+@register("dictation")
+class DictationCorrector(Corrector):
+    """Write-what-you-hear: normalized text comparison (case & punctuation
+    insensitive)."""
+
+    def check(self, content, answer):
+        def clean(text):
+            return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", "", _norm(text))).strip()
+
+        correct = clean(answer.get("answer", "")) == clean(
+            content.get("answer", "")
+        )
+        return correct, 1.0 if correct else 0.0
 
 
 def answer_text(code: str, content: dict) -> str:

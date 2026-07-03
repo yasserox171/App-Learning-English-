@@ -37,6 +37,8 @@ dependencies:
   audioplayers: ^6.0.0
   confetti: ^0.8.0
   flutter_animate: ^4.5.0
+  # Pronunciation training (on-device speech recognition)
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:

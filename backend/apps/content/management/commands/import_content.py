@@ -169,6 +169,9 @@ class Command(BaseCommand):
                     example_sentence=v.get("example_sentence", ""),
                     image_url=self._media_url(v.get("image_url", "")),
                     audio_url=self._media_url(v.get("audio_url", "")),
+                    syllables=v.get("syllables") or "",
+                    pronunciation_tip_ar=v.get("pronunciation_tip_ar") or "",
+                    difficulty=v.get("difficulty") or "",
                     order=v.get("order", i),
                 )
 
@@ -181,6 +184,7 @@ class Command(BaseCommand):
                 # VideoService passes absolute URLs through unchanged.
                 storage_key=self._media_url(comp.get("storage_key", "")),
                 status=comp.get("status", Video.Status.READY),
+                script=comp.get("script") or {},
             )
 
         elif ctype == LessonComponent.Type.EXERCISE:

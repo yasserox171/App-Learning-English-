@@ -19,6 +19,7 @@ class ExerciseTemplate(BaseModel):
         REORDER = "reorder", "Reorder"
         LISTENING = "listening", "Listening"
         PRONUNCIATION = "pronunciation", "Pronunciation"
+        DICTATION = "dictation", "Dictation"
         FINAL_TEST = "final_test", "Final Test"
 
     code = models.CharField(max_length=30, choices=Code.choices, unique=True)
@@ -76,3 +77,26 @@ class ExerciseAttempt(BaseModel):
 
     def __str__(self):
         return f"{self.user_id} · {self.exercise_id} · {self.is_correct}"
+
+
+class PronunciationAttempt(BaseModel):
+    """One mic attempt at a pronunciation exercise, kept for error analysis."""
+
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="pronunciation_attempts"
+    )
+    exercise = models.ForeignKey(
+        Exercise, on_delete=models.CASCADE, related_name="pronunciation_attempts"
+    )
+    spoken_text = models.TextField(blank=True)
+    target_text = models.TextField(blank=True)
+    score = models.FloatField(default=0)
+    passed = models.BooleanField(default=False)
+    attempt_number = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        db_table = "pronunciation_attempts"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id} · {self.exercise_id} · {self.score:.2f}"

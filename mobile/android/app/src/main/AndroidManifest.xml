@@ -2,6 +2,9 @@
     <!-- Required for the app to make network requests in release builds.
          Flutter only adds this to the debug/profile manifests by default. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Pronunciation training records the learner's voice for on-device
+         speech recognition. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="lms_mobile"
         android:name="${applicationName}"
@@ -48,6 +51,10 @@
         <!-- Required so flutter_tts can find a text-to-speech engine on Android 11+ -->
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+        <!-- Required so speech_to_text can find the recognition service on Android 11+ -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

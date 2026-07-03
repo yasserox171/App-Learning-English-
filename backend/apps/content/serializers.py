@@ -41,10 +41,16 @@ class LessonSerializer(serializers.ModelSerializer):
 
 class VideoSerializer(serializers.ModelSerializer):
     playback_url = serializers.SerializerMethodField()
+    segments = serializers.SerializerMethodField()
 
     class Meta:
         model = Video
-        fields = ("id", "title", "duration", "status", "playback_url")
+        fields = ("id", "title", "duration", "status", "playback_url", "segments")
+
+    def get_segments(self, obj):
+        # Timed transcript for in-player subtitles; [] when not provided.
+        script = obj.script or {}
+        return script.get("segments", [])
 
     def get_playback_url(self, obj):
         # Hosting isolated behind the service layer (master prompt §7).
@@ -55,7 +61,8 @@ class VocabularyItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = VocabularyItem
         fields = ("id", "word", "translation", "audio_url", "image_url",
-                  "example_sentence", "order")
+                  "example_sentence", "syllables", "pronunciation_tip_ar",
+                  "order")
 
 
 class TextBlockSerializer(serializers.ModelSerializer):

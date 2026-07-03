@@ -147,6 +147,19 @@ class AppLocalizations {
       'retake_test': 'Retake the test',
       'finish_lessons_first': 'Finish all unit lessons to unlock the test.',
       'you_will_learn': 'In this lesson you will learn:',
+      'write_what_you_hear': 'Write what you hear:',
+      'pronounce_word': 'Pronounce this:',
+      'listen_model': 'Listen to the model',
+      'recording': 'Listening… speak now',
+      'attempt': 'Attempt',
+      'excellent': 'Excellent!',
+      'very_good': 'Very good!',
+      'almost': 'Almost there!',
+      'mic_unavailable':
+          'Speech recognition is unavailable on this device.',
+      'pron_tip_generic':
+          'Listen to the model again and repeat slowly, syllable by syllable.',
+      'skip_step': 'Skip',
     },
     'ar': {
       'app_title': 'تعلّم الإنجليزية',
@@ -275,6 +288,17 @@ class AppLocalizations {
       'retake_test': 'أعد الاختبار',
       'finish_lessons_first': 'أكمل كل دروس الوحدة لفتح الاختبار.',
       'you_will_learn': 'ستتعلم في هذا الدرس:',
+      'write_what_you_hear': 'اكتب ما تسمعه:',
+      'pronounce_word': 'انطق هذه:',
+      'listen_model': 'استمع للنموذج',
+      'recording': 'جارٍ الاستماع… تحدّث الآن',
+      'attempt': 'المحاولة',
+      'excellent': 'ممتاز!',
+      'very_good': 'جيد جداً!',
+      'almost': 'تقريباً!',
+      'mic_unavailable': 'التعرف على الصوت غير متاح على هذا الجهاز.',
+      'pron_tip_generic': 'استمع للنموذج مجدداً وكرر ببطء، مقطعاً مقطعاً.',
+      'skip_step': 'تخطَّ',
     },
   };
 
