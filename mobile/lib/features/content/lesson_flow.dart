@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'data/models.dart';
 
 /// One page of the lesson player.
@@ -45,7 +47,8 @@ class LessonSection {
 /// 'evaluation' section); a vocabulary image quiz is appended when the lesson
 /// has at least 3 illustrated words.
 class LessonFlow {
-  LessonFlow(LessonDetail lesson) {
+  /// [shuffleVocab] randomizes word order on lesson replays (feature 9).
+  LessonFlow(LessonDetail lesson, {bool shuffleVocab = false}) {
     final exById = <String, Map<String, dynamic>>{};
     for (final c in lesson.components) {
       if (c.type == 'exercise') {
@@ -67,7 +70,8 @@ class LessonFlow {
           break;
 
         case 'vocabulary':
-          final items = (c.payload as List?) ?? const [];
+          var items = List.of((c.payload as List?) ?? const []);
+          if (shuffleVocab) items.shuffle(Random());
           for (final v in items) {
             final item = Map<String, dynamic>.from(v as Map);
             pages.add(LessonPageSpec(kind: 'vocab_card', vocabItem: item));

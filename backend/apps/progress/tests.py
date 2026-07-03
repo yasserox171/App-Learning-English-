@@ -8,7 +8,13 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.content.models import Lesson, Level, Unit
-from apps.progress.models import Certificate, PlacementResult, Progress
+from apps.progress.models import (
+    Certificate,
+    PlacementResult,
+    Progress,
+    UnitAssessment,
+    VocabularyProgress,
+)
 from apps.progress.services import (
     compute_streak,
     lessons_overview,
@@ -116,7 +122,8 @@ def test_lessons_overview_sequential_lock(ladder):
     assert rows[2]["locked"] is True
 
 
-def test_units_overview_sequential_lock(ladder):
+def test_units_overview_mastery_gate(ladder):
+    """Next unit unlocks only after lessons complete AND assessment passed."""
     level, unit, lessons = ladder
     user = User.objects.create_user(email="u@test.com", password="pass12345")
     unit2 = Unit.objects.create(level=level, title="U2", order=2)
@@ -125,7 +132,7 @@ def test_units_overview_sequential_lock(ladder):
     rows = units_overview(user, level.id)
     assert rows[0]["locked"] is False and rows[1]["locked"] is True
 
-    for lesson in lessons:  # finish unit 1
+    for lesson in lessons:  # finish unit 1's lessons
         Progress.objects.create(
             user=user,
             lesson=lesson,
@@ -134,7 +141,177 @@ def test_units_overview_sequential_lock(ladder):
         )
     rows = units_overview(user, level.id)
     assert rows[0]["is_completed"] is True
-    assert rows[1]["locked"] is False
+    assert rows[0]["assessment_ready"] is True
+    assert rows[1]["locked"] is True  # still gated by the assessment
+
+    UnitAssessment.objects.create(
+        user=user, unit=unit, score=9, max_score=10, passed=True
+    )
+    rows = units_overview(user, level.id)
+    assert rows[0]["assessment_passed"] is True
+    assert rows[1]["locked"] is False  # mastery unlocks the next unit
+
+
+# --- Unit assessment -------------------------------------------------------- #
+def _correct_answer_for(exercise):
+    c, code = exercise.content, exercise.template.code
+    if code in ("multiple_choice", "listening"):
+        return {"selected_index": c["correct_index"]}
+    if code == "true_false":
+        return {"answer": c["answer"]}
+    if code == "fill_blank":
+        return {"answer": c["answer"]}
+    if code == "matching":
+        return {"pairs": c["pairs"]}
+    if code == "reorder":
+        return {"order": c["correct_order"]}
+    return {}
+
+
+def test_unit_assessment_generate_sanitized(auth_client):
+    client, _ = auth_client
+    unit = Unit.objects.first()
+    resp = client.get(reverse("v1:unit-assessment", args=[unit.id]))
+    assert resp.status_code == 200
+    questions = resp.data["questions"]
+    assert questions
+    for q in questions:
+        assert "correct_index" not in q["content"]
+        assert "answer" not in q["content"]
+        assert q["template_code"] not in ("pronunciation", "final_test")
+
+
+def test_unit_assessment_fail_and_pass(auth_client):
+    from apps.exercises.models import Exercise
+
+    client, user = auth_client
+    unit = Unit.objects.first()
+    resp = client.get(reverse("v1:unit-assessment", args=[unit.id]))
+    questions = resp.data["questions"]
+    exercises = {
+        str(e.id): e
+        for e in Exercise.objects.filter(
+            component__lesson__unit=unit
+        ).select_related("template")
+    }
+
+    # All wrong -> failed attempt #1
+    wrong = {q["id"]: {"selected_index": 99} for q in questions}
+    resp = client.post(
+        reverse("v1:unit-assessment", args=[unit.id]),
+        {"answers": wrong},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.data["passed"] is False and resp.data["attempt"] == 1
+
+    # All correct -> passed attempt #2
+    right = {q["id"]: _correct_answer_for(exercises[q["id"]]) for q in questions}
+    resp = client.post(
+        reverse("v1:unit-assessment", args=[unit.id]),
+        {"answers": right},
+        format="json",
+    )
+    assert resp.data["passed"] is True and resp.data["attempt"] == 2
+    assert UnitAssessment.objects.filter(user=user, unit=unit).count() == 2
+
+
+def test_unit_rating(auth_client):
+    client, user = auth_client
+    unit = Unit.objects.first()
+    resp = client.post(
+        reverse("v1:unit-rating", args=[unit.id]), {"rating": "up"}, format="json"
+    )
+    assert resp.status_code == 200
+    from apps.progress.models import ContentRating
+
+    assert ContentRating.objects.get(user=user, unit=unit).rating == "up"
+
+
+# --- Lesson phases ------------------------------------------------------------ #
+def test_lesson_phase_marks_step_completed(auth_client):
+    client, user = auth_client
+    lesson = Lesson.objects.get(title="Checking in")
+    resp = client.post(
+        reverse("v1:progress-phase", args=[lesson.id]), {"phase": 2}, format="json"
+    )
+    assert resp.status_code == 200 and resp.data["phases"] == [2]
+
+    rows = lessons_overview(user, lesson.unit_id)
+    row = next(r for r in rows if r["id"] == str(lesson.id))
+    vocab = next(s for s in row["steps"] if s["type"] == "vocabulary")
+    assert vocab["completed"] is True
+    others = [s for s in row["steps"] if s["type"] != "vocabulary"]
+    assert all(not s["completed"] for s in others)
+    # Touching a phase marks the lesson in progress.
+    assert Progress.objects.get(user=user, lesson=lesson).status == "in_progress"
+
+
+# --- Vocabulary tracking ------------------------------------------------------ #
+def test_vocab_track_promotion(auth_client):
+    from apps.content.models import VocabularyItem
+
+    client, user = auth_client
+    item = VocabularyItem.objects.first()
+    url = reverse("v1:vocab-track")
+
+    client.post(url, {"results": [{"item_id": str(item.id), "correct": True}]},
+                format="json")
+    vp = VocabularyProgress.objects.get(user=user, vocabulary_item=item)
+    assert vp.status == "learned"
+
+    for _ in range(2):
+        client.post(url, {"results": [{"item_id": str(item.id), "correct": True}]},
+                    format="json")
+    vp.refresh_from_db()
+    assert vp.status == "mastered" and vp.correct_count == 3
+
+    other = VocabularyItem.objects.exclude(id=item.id).first()
+    client.post(url, {"results": [{"item_id": str(other.id), "correct": False}]},
+                format="json")
+    assert (
+        VocabularyProgress.objects.get(user=user, vocabulary_item=other).status
+        == "seen"
+    )
+
+
+# --- Hints + answer reveal ---------------------------------------------------- #
+def test_hint_and_attempt_reveal(auth_client):
+    from apps.exercises.models import Exercise
+
+    client, _ = auth_client
+    ex = Exercise.objects.filter(template__code="multiple_choice").first()
+    correct_text = ex.content["options"][ex.content["correct_index"]]
+
+    r1 = client.post(
+        reverse("v1:exercise-hint", args=[ex.id]), {"level": 1}, format="json"
+    )
+    assert r1.status_code == 200
+    assert ex.content["correct_index"] not in r1.data.get("eliminate", [])
+
+    r2 = client.post(
+        reverse("v1:exercise-hint", args=[ex.id]), {"level": 2}, format="json"
+    )
+    assert r2.data["hint"] == correct_text
+
+    # Correct with a hint -> half points.
+    r3 = client.post(
+        reverse("v1:exercise-attempt", args=[ex.id]),
+        {"answer": {"selected_index": ex.content["correct_index"]},
+         "used_hint": True},
+        format="json",
+    )
+    assert r3.data["is_correct"] is True
+    assert r3.data["score"] == round(ex.points * 0.5)
+
+    # Wrong answer reveals the correction.
+    r4 = client.post(
+        reverse("v1:exercise-attempt", args=[ex.id]),
+        {"answer": {"selected_index": 99}},
+        format="json",
+    )
+    assert r4.data["is_correct"] is False
+    assert r4.data["correct_answer"] == correct_text
 
 
 def test_compute_streak(ladder):

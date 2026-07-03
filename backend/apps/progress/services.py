@@ -12,7 +12,13 @@ from django.utils import timezone
 
 from apps.content.models import Lesson, LessonComponent, Level, Unit
 
-from .models import Certificate, PlacementResult, Progress
+from .models import (
+    Certificate,
+    LessonPhaseProgress,
+    PlacementResult,
+    Progress,
+    UnitAssessment,
+)
 
 # Per-lesson progress is binary (completed / not), so map status -> percent for
 # a friendlier UI ("متابعة 50%").
@@ -20,6 +26,15 @@ _STATUS_PERCENT = {
     Progress.Status.COMPLETED: 100,
     Progress.Status.IN_PROGRESS: 50,
     Progress.Status.NOT_STARTED: 0,
+}
+
+# Micro-learning phase number per step type (master UX prompt, feature 1).
+PHASE_OF = {
+    "text": 1,
+    "vocabulary": 2,
+    "video": 3,
+    "exercise": 4,
+    "evaluation": 5,
 }
 
 
@@ -181,10 +196,18 @@ def _lesson_steps(lesson) -> list:
 
 def units_overview(user, level_id) -> list:
     """Units of a level with progress, lock state, and embedded lesson rows —
-    one response builds the whole level path (ABA-style timeline)."""
+    one response builds the whole level path (ABA-style timeline).
+
+    Mastery gate: the next unit unlocks only when the previous unit's lessons
+    are ALL completed AND its assessment was passed (>= 80%)."""
     units = list(Unit.objects.filter(level_id=level_id).order_by("order"))
+    passed_units = set(
+        UnitAssessment.objects.filter(
+            user=user, unit__level_id=level_id, passed=True
+        ).values_list("unit_id", flat=True)
+    )
     result = []
-    prev_completed = True
+    prev_mastered = True
     for i, unit in enumerate(units):
         lessons = lessons_overview(user, unit.id)
         total = len(lessons)
@@ -193,7 +216,8 @@ def units_overview(user, level_id) -> list:
         )
         percent = round((completed / total) * 100) if total else 0
         is_completed = total > 0 and completed == total
-        locked = not (i == 0 or prev_completed)
+        assessment_passed = unit.id in passed_units
+        locked = not (i == 0 or prev_mastered)
         if locked:  # a locked unit locks all its lessons
             for l in lessons:
                 l["locked"] = True
@@ -208,13 +232,15 @@ def units_overview(user, level_id) -> list:
                 "percent": percent,
                 "is_completed": is_completed,
                 "locked": locked,
+                "assessment_passed": assessment_passed,
+                "assessment_ready": is_completed and not assessment_passed,
                 "thumbnail": next(
                     (l["thumbnail"] for l in lessons if l["thumbnail"]), ""
                 ),
                 "lessons": lessons,
             }
         )
-        prev_completed = is_completed
+        prev_mastered = is_completed and assessment_passed
     return result
 
 
@@ -233,11 +259,22 @@ def lessons_overview(user, unit_id) -> list:
         p.lesson_id: p
         for p in Progress.objects.filter(user=user, lesson__unit_id=unit_id)
     }
+    phases_by_lesson: dict = {}
+    for row in LessonPhaseProgress.objects.filter(
+        user=user, lesson__unit_id=unit_id
+    ):
+        phases_by_lesson.setdefault(row.lesson_id, set()).add(row.phase)
+
     result = []
     prev_completed = True
     for i, lesson in enumerate(lessons):
         progress = by_lesson.get(lesson.id)
         status = progress.status if progress else Progress.Status.NOT_STARTED
+        is_done = status == Progress.Status.COMPLETED
+        done_phases = phases_by_lesson.get(lesson.id, set())
+        steps = _lesson_steps(lesson)
+        for s in steps:  # real partial progress, not all-or-nothing
+            s["completed"] = is_done or PHASE_OF.get(s["type"], 0) in done_phases
         result.append(
             {
                 "id": str(lesson.id),
@@ -248,10 +285,10 @@ def lessons_overview(user, unit_id) -> list:
                 "percent": _STATUS_PERCENT.get(status, 0),
                 "locked": not (i == 0 or prev_completed),
                 "thumbnail": _lesson_thumbnail(lesson),
-                "steps": _lesson_steps(lesson),
+                "steps": steps,
             }
         )
-        prev_completed = status == Progress.Status.COMPLETED
+        prev_completed = is_done
     return result
 
 

@@ -127,6 +127,30 @@ class PronunciationCorrector(Corrector):
         return False, 0.0
 
 
+def answer_text(code: str, content: dict) -> str:
+    """Human-readable correct answer for post-attempt reveal / full hints."""
+    if code in ("multiple_choice", "listening"):
+        options = content.get("options", [])
+        idx = content.get("correct_index")
+        if isinstance(idx, int) and 0 <= idx < len(options):
+            return str(options[idx])
+        return ""
+    if code == "true_false":
+        return "true" if content.get("answer") else "false"
+    if code in ("fill_blank", "dictation"):
+        return str(content.get("answer", ""))
+    if code == "matching":
+        return "، ".join(
+            f"{p.get('left')} → {p.get('right')}"
+            for p in content.get("pairs", [])
+        )
+    if code == "reorder":
+        return " ".join(str(w) for w in content.get("correct_order", []))
+    if code == "pronunciation":
+        return str(content.get("target_text", ""))
+    return ""
+
+
 @register("final_test")
 class FinalTestCorrector(Corrector):
     """Aggregate corrector: runs each referenced exercise's own corrector."""

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/assessment/unit_assessment_screen.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
@@ -97,6 +98,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           lessonId: s.pathParameters['id']!,
           initialIndex:
               int.tryParse(s.uri.queryParameters['step'] ?? '') ?? 0,
+          replay: s.uri.queryParameters['replay'] == '1',
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/units/:id/assessment',
+        builder: (_, s) => UnitAssessmentScreen(
+          unitId: s.pathParameters['id']!,
+          unitTitle: s.extra is String ? s.extra as String : '',
         ),
       ),
       GoRoute(

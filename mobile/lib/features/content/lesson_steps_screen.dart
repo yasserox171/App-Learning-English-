@@ -29,9 +29,21 @@ class _LessonStepsScreenState extends ConsumerState<LessonStepsScreen> {
   late bool _completed = widget.summary?.isCompleted ?? false;
 
   Future<void> _openPlayer(int pageStart) async {
-    final done = await context
-        .push<bool>('/lessons/${widget.lessonId}/play?step=$pageStart');
+    final replay = _completed ? '&replay=1' : '';
+    final done = await context.push<bool>(
+        '/lessons/${widget.lessonId}/play?step=$pageStart$replay');
     if (done == true && mounted) setState(() => _completed = true);
+  }
+
+  /// Per-step ✓ from the backend phase rows (aligned with flow.sections);
+  /// a completed lesson checks everything.
+  bool _stepDone(LessonFlow flow, int i) {
+    if (_completed) return true;
+    final steps = widget.summary?.steps;
+    if (steps != null && steps.length == flow.sections.length) {
+      return steps[i].completed;
+    }
+    return false;
   }
 
   @override
@@ -72,11 +84,17 @@ class _LessonStepsScreenState extends ConsumerState<LessonStepsScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 sliver: SliverList.list(
                   children: [
-                    for (final s in flow.sections)
+                    if (widget.summary?.status == 'not_started')
+                      _TeacherGuideCard(
+                        description: widget.summary?.description ?? '',
+                        minutes: flow.sections
+                            .fold<int>(0, (a, s) => a + s.minutes),
+                      ),
+                    for (var i = 0; i < flow.sections.length; i++)
                       _StepCard(
-                        section: s,
-                        completed: _completed,
-                        onTap: () => _openPlayer(s.pageStart),
+                        section: flow.sections[i],
+                        completed: _stepDone(flow, i),
+                        onTap: () => _openPlayer(flow.sections[i].pageStart),
                       ),
                     const SizedBox(height: 8),
                     FilledButton.icon(
@@ -138,6 +156,62 @@ class _HeroFallback extends StatelessWidget {
       child: const Center(
         child:
             Icon(Icons.menu_book_rounded, size: 72, color: Colors.white54),
+      ),
+    );
+  }
+}
+
+/// First-open intro (UX prompt feature 2): what you'll learn (bullets derived
+/// from the lesson description) + expected time. Skipped on revisits because
+/// the lesson is no longer `not_started`.
+class _TeacherGuideCard extends StatelessWidget {
+  const _TeacherGuideCard({required this.description, required this.minutes});
+
+  final String description;
+  final int minutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final bullets = description
+        .split(RegExp(r'[.,،:;]+'))
+        .map((s) => s.trim())
+        .where((s) => s.length > 2)
+        .take(3)
+        .toList();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('🎯 ${t.t('you_will_learn')}',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          for (final b in bullets)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• '),
+                  Expanded(child: Text(b)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text('⏱️ ${t.t('expected_time')}: $minutes ${t.t('min_short')}',
+              style: Theme.of(context).textTheme.bodyMedium),
+        ],
       ),
     );
   }

@@ -104,9 +104,10 @@ class VocabularyCard extends ConsumerWidget {
 /// The vocabulary practice step: an image multiple-choice quiz built from the
 /// lesson's vocabulary items. Renders a placeholder if there isn't enough data.
 class VocabularyView extends StatelessWidget {
-  const VocabularyView({super.key, required this.items});
+  const VocabularyView({super.key, required this.items, this.onQuizDone});
 
   final List items;
+  final void Function(int correct, int total)? onQuizDone;
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +123,6 @@ class VocabularyView extends StatelessWidget {
         ),
       );
     }
-    return VocabularyQuiz(items: items);
+    return VocabularyQuiz(items: items, onQuizDone: onQuizDone);
   }
 }

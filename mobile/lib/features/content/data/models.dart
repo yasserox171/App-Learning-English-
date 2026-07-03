@@ -32,6 +32,8 @@ class Unit {
     this.total = 0,
     this.isCompleted = false,
     this.locked = false,
+    this.assessmentPassed = false,
+    this.assessmentReady = false,
     this.thumbnail = '',
     this.lessons = const [],
   });
@@ -44,6 +46,12 @@ class Unit {
   final int total;
   final bool isCompleted;
   final bool locked;
+
+  /// Mastery test state: passed unlocks the next unit; ready = lessons done
+  /// but the test not yet passed.
+  final bool assessmentPassed;
+  final bool assessmentReady;
+
   final String thumbnail;
   final List<LessonSummary> lessons;
 
@@ -56,6 +64,8 @@ class Unit {
         total: j['total'] ?? 0,
         isCompleted: j['is_completed'] ?? false,
         locked: j['locked'] ?? false,
+        assessmentPassed: j['assessment_passed'] ?? false,
+        assessmentReady: j['assessment_ready'] ?? false,
         thumbnail: j['thumbnail'] ?? '',
         lessons: ((j['lessons'] as List?) ?? const [])
             .map((e) => LessonSummary.fromJson(e as Map<String, dynamic>))
@@ -64,18 +74,25 @@ class Unit {
 }
 
 /// One derived lesson step (video / vocabulary / exercise / text) with an
-/// estimated duration in minutes.
+/// estimated duration in minutes and its phase-completion state.
 class LessonStepInfo {
-  LessonStepInfo({required this.type, required this.count, required this.minutes});
+  LessonStepInfo({
+    required this.type,
+    required this.count,
+    required this.minutes,
+    this.completed = false,
+  });
 
   final String type;
   final int count;
   final int minutes;
+  final bool completed;
 
   factory LessonStepInfo.fromJson(Map<String, dynamic> j) => LessonStepInfo(
         type: j['type'] ?? '',
         count: j['count'] ?? 0,
         minutes: j['minutes'] ?? 1,
+        completed: j['completed'] ?? false,
       );
 }
 

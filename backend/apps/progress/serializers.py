@@ -25,3 +25,26 @@ class CertificateSerializer(serializers.ModelSerializer):
             "id", "certificate_number", "level_code", "level_name",
             "pdf_url", "issued_at",
         )
+
+
+class PhaseSerializer(serializers.Serializer):
+    phase = serializers.IntegerField(min_value=1, max_value=5)
+    score = serializers.FloatField(required=False, default=0)
+
+
+class AssessmentSubmitSerializer(serializers.Serializer):
+    # answers maps exercise id -> that template's answer object
+    answers = serializers.DictField(child=serializers.DictField())
+
+
+class RatingSerializer(serializers.Serializer):
+    rating = serializers.ChoiceField(choices=["up", "down"])
+
+
+class VocabResultSerializer(serializers.Serializer):
+    item_id = serializers.UUIDField()
+    correct = serializers.BooleanField()
+
+
+class VocabTrackSerializer(serializers.Serializer):
+    results = VocabResultSerializer(many=True)

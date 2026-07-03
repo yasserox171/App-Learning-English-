@@ -94,6 +94,19 @@ class LevelPathScreen extends ConsumerWidget {
                         },
                       ),
                     ),
+                  if (items[i].total > 0)
+                    _TimelineRow(
+                      child: _AssessmentCard(
+                        unit: items[i],
+                        onStart: () async {
+                          await context.push<bool>(
+                            '/units/${items[i].id}/assessment',
+                            extra: items[i].title,
+                          );
+                          ref.invalidate(unitsProvider(levelId));
+                        },
+                      ),
+                    ),
                 ],
                 _TimelineRow(
                   isLast: true,
@@ -342,7 +355,7 @@ class _LessonCard extends StatelessWidget {
                       StepDots(
                         count: lesson.steps.length,
                         completedCount:
-                            lesson.isCompleted ? lesson.steps.length : 0,
+                            lesson.steps.where((s) => s.completed).length,
                       ),
                     ],
                   ),
@@ -350,6 +363,95 @@ class _LessonCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The unit's mastery-test card, shown after its last lesson. States:
+/// locked (lessons unfinished) / ready (start) / passed (✓ + star).
+class _AssessmentCard extends StatelessWidget {
+  const _AssessmentCard({required this.unit, required this.onStart});
+
+  final Unit unit;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final passed = unit.assessmentPassed;
+    final ready = unit.assessmentReady;
+
+    return Opacity(
+      opacity: passed || ready ? 1 : 0.55,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: passed
+              ? AppTheme.success.withOpacity(0.10)
+              : scheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: passed
+              ? Border.all(color: AppTheme.success.withOpacity(0.5))
+              : null,
+          boxShadow: AppTheme.cardShadow(context),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: (passed ? AppTheme.success : AppTheme.primary)
+                    .withOpacity(0.14),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                passed
+                    ? Icons.star_rounded
+                    : ready
+                        ? Icons.assignment_rounded
+                        : Icons.lock_rounded,
+                color: passed
+                    ? AppTheme.accent
+                    : ready
+                        ? AppTheme.primary
+                        : scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.t('unit_test'),
+                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    passed
+                        ? t.t('unit_passed')
+                        : ready
+                            ? '${t.t('pass_condition')}: 8/10'
+                            : t.t('finish_lessons_first'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            if (passed)
+              const Icon(Icons.check_circle_rounded, color: AppTheme.success)
+            else
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 42),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                onPressed: ready ? onStart : null,
+                child: Text(t.t('start_test')),
+              ),
+          ],
         ),
       ),
     );

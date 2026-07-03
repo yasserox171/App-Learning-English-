@@ -197,6 +197,18 @@ class ProgressRepository {
     });
     return res.data as Map<String, dynamic>;
   }
+
+  /// Marks a micro-learning phase (1..5) of a lesson as completed.
+  Future<void> completePhase(String lessonId, int phase) async {
+    await _dio.post('/progress/lesson/$lessonId/phase', data: {'phase': phase});
+  }
+
+  /// Batch-reports vocabulary quiz results for status tracking
+  /// (new → seen → learned → mastered).
+  Future<void> trackVocab(List<Map<String, dynamic>> results) async {
+    if (results.isEmpty) return;
+    await _dio.post('/vocab/track', data: {'results': results});
+  }
 }
 
 final progressRepositoryProvider = Provider<ProgressRepository>(
