@@ -32,14 +32,16 @@ dependencies:
   url_launcher: ^6.2.6
   # Certificate download + share
   path_provider: ^2.1.3
-  share_plus: ^9.0.0
+  share_plus: ^12.0.2
   # Feedback: tones, celebration, micro-animations
   audioplayers: ^6.0.0
   confetti: ^0.8.0
   flutter_animate: ^4.5.0
   # Pronunciation training (on-device speech recognition).
-  # 6.x is pinned: 7.x needs `web ^1.0.0` which conflicts with share_plus 9.
-  speech_to_text: ^6.6.0
+  # 6.x's Android build.gradle uses jcenter(), which current AGP/Gradle no
+  # longer supports -> build failure. 7.x fixed this and needs web ^1.0.0,
+  # so share_plus is upgraded alongside it to keep the resolver happy.
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:
