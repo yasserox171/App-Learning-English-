@@ -29,6 +29,13 @@ class FeedbackService {
     await _play('correct');
   }
 
+  /// Longer, richer celebration (~750ms) with a strong haptic — used by the
+  /// bubble vocabulary quiz (UX prompt 1.1).
+  Future<void> celebrate() async {
+    HapticFeedback.heavyImpact();
+    await _play('celebrate');
+  }
+
   Future<void> wrong() async {
     HapticFeedback.mediumImpact();
     await _play('wrong');

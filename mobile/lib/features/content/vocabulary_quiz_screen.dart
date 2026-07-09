@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/feedback/feedback_service.dart';
@@ -9,6 +10,7 @@ import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/tts/tts_service.dart';
 import '../../core/widgets/feedback_fx.dart';
+import '../../core/widgets/star_burst.dart';
 import '../progress/data/progress_repository.dart';
 
 class _Question {
@@ -124,9 +126,11 @@ class _VocabularyQuizState extends ConsumerState<VocabularyQuiz> {
         if (!_mistakeOnCurrent) _score++;
       });
       _results.putIfAbsent(q.itemId, () => !_mistakeOnCurrent);
-      ref.read(feedbackServiceProvider).correct();
+      // Full celebration: long sound + heavy haptic + flying stars, so give
+      // the moment a little more room before auto-advancing.
+      ref.read(feedbackServiceProvider).celebrate();
       _speakWord(q);
-      Future.delayed(const Duration(milliseconds: 800), _next);
+      Future.delayed(const Duration(milliseconds: 1100), _next);
     } else {
       setState(() {
         _mistakeOnCurrent = true;
@@ -279,12 +283,20 @@ class _VocabularyQuizState extends ConsumerState<VocabularyQuiz> {
           runSpacing: 14,
           children: [
             for (final option in q.options)
-              _Bubble(
-                label: option,
-                correct: _answeredCorrect && option == q.word,
-                wrong: _selectedWrong == option,
-                shakeTrigger: _selectedWrong == option ? _wrongShake : 0,
-                onTap: () => _onSelect(option),
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  _Bubble(
+                    label: option,
+                    correct: _answeredCorrect && option == q.word,
+                    wrong: _selectedWrong == option,
+                    shakeTrigger: _selectedWrong == option ? _wrongShake : 0,
+                    onTap: () => _onSelect(option),
+                  ),
+                  if (_answeredCorrect && option == q.word)
+                    StarBurst(key: ValueKey('burst-$_index'), size: 150),
+                ],
               ),
           ],
         ),
@@ -315,46 +327,71 @@ class _Bubble extends StatelessWidget {
     Color bg = scheme.surface;
     Color fg = scheme.onSurface;
     Color border = scheme.outlineVariant.withOpacity(0.6);
+    Gradient? gradient;
     if (correct) {
-      bg = AppTheme.success;
       fg = Colors.white;
       border = AppTheme.success;
+      gradient = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [AppTheme.primary, AppTheme.success],
+      );
     } else if (wrong) {
       bg = AppTheme.danger.withOpacity(0.15);
       fg = AppTheme.danger;
       border = AppTheme.danger;
     }
 
-    return ShakeX(
-      trigger: shakeTrigger,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Container(
-          width: 108,
-          height: 108,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: bg,
-            border: Border.all(color: border, width: 2),
-            boxShadow: AppTheme.cardShadow(context),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: fg,
-              ),
+    Widget bubble = InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+        width: 108,
+        height: 108,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: gradient == null ? bg : null,
+          gradient: gradient,
+          border: Border.all(color: border, width: 2),
+          boxShadow: AppTheme.cardShadow(context),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: fg,
             ),
           ),
         ),
       ),
     );
+
+    // Celebration pulse: pop up, settle back, tiny happy wiggle.
+    bubble = bubble
+        .animate(target: correct ? 1 : 0)
+        .scale(
+          begin: const Offset(1, 1),
+          end: const Offset(1.18, 1.18),
+          duration: 220.ms,
+          curve: Curves.easeOutBack,
+        )
+        .then()
+        .scale(
+          begin: const Offset(1, 1),
+          end: const Offset(1 / 1.18, 1 / 1.18),
+          duration: 200.ms,
+          curve: Curves.easeIn,
+        )
+        .shake(hz: 4, rotation: 0.02, duration: 300.ms);
+
+    return ShakeX(trigger: shakeTrigger, child: bubble);
   }
 }
