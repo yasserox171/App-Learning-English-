@@ -9,6 +9,7 @@ api_v1_patterns = [
     path("", include("apps.content.urls")),
     path("exercises/", include("apps.exercises.urls")),
     path("", include("apps.progress.urls")),
+    path("news/", include("apps.news.urls")),
 ]
 
 urlpatterns = [

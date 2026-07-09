@@ -12,6 +12,7 @@ import '../../features/content/lesson_steps_screen.dart';
 import '../../features/content/level_path_screen.dart';
 import '../../features/content/levels_screen.dart';
 import '../../features/home/home_dashboard_screen.dart';
+import '../../features/news/news_screen.dart';
 import '../../features/onboarding/language_screen.dart';
 import '../../features/onboarding/splash_screen.dart';
 import '../../features/placement/placement_intro_screen.dart';
@@ -133,6 +134,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootKey,
         path: '/settings',
         builder: (_, __) => const SettingsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/news',
+        builder: (_, __) => const NewsScreen(),
       ),
     ],
   );

@@ -122,6 +122,11 @@ class AppLocalizations {
       'saved_to_app_files': 'Saved inside the app files',
       'share_certificate_text':
           'I earned my {level} English certificate at Focus Languages!',
+      'todays_news': "Today's News",
+      'no_news': 'No news today — check back tomorrow!',
+      'news_read': 'Read',
+      'news_quiz_free': 'Practice (FREE)',
+      'news_exercises': 'Quick exercises',
       'video_lesson': 'Video lesson',
       'vocabulary_step': 'Vocabulary',
       'exercises_step': 'Exercises',
@@ -269,6 +274,11 @@ class AppLocalizations {
       'saved_to_app_files': 'تم الحفظ داخل ملفات التطبيق',
       'share_certificate_text':
           'حصلت على شهادة مستوى {level} في اللغة الإنجليزية من Focus Languages!',
+      'todays_news': 'خبر اليوم',
+      'no_news': 'لا يوجد خبر اليوم — عُد غداً!',
+      'news_read': 'اقرأ',
+      'news_quiz_free': 'تدرّب (مجاني)',
+      'news_exercises': 'تمارين سريعة',
       'video_lesson': 'درس فيديو',
       'vocabulary_step': 'المفردات',
       'exercises_step': 'التمارين',

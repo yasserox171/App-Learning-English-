@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/gradient_header.dart';
 import '../../core/widgets/progress_ring.dart';
 import '../auth/auth_controller.dart';
+import '../news/data/news_repository.dart';
 import '../progress/data/progress_repository.dart';
 
 /// Home dashboard (design screen 05): greeting, current-level ring, a
@@ -74,6 +75,7 @@ class HomeDashboardScreen extends ConsumerWidget {
                         onTap: () => context.go('/learn'),
                       ),
                       const SizedBox(height: 14),
+                      const _NewsCard(),
                       if (s.next != null)
                         _ContinueCard(
                           next: s.next!,
@@ -87,6 +89,119 @@ class HomeDashboardScreen extends ConsumerWidget {
                 },
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Today's News" teaser right below the current-level card (UX prompt 2.1).
+/// Hidden entirely while loading, on error, or when no story is published.
+class _NewsCard extends ConsumerWidget {
+  const _NewsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
+    final daily = ref.watch(dailyNewsProvider);
+    final article = daily.valueOrNull;
+    if (article == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push('/news'),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('📰 ${t.t('todays_news')}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(color: AppTheme.primary)),
+                    ),
+                    if (article.difficulty.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(article.difficulty,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  article.titleEn,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                if (article.titleAr.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    article.titleAr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textDirection: TextDirection.rtl,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.menu_book_rounded,
+                        size: 18, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(t.t('news_read'),
+                        style: Theme.of(context).textTheme.labelMedium),
+                    const SizedBox(width: 14),
+                    Icon(Icons.volume_up_rounded,
+                        size: 18, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(t.t('listen'),
+                        style: Theme.of(context).textTheme.labelMedium),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.success.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '✏️ ${t.t('news_quiz_free')}',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.success),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
