@@ -41,6 +41,11 @@ class HomeShell extends ConsumerWidget {
             label: t.t('learn'),
           ),
           NavigationDestination(
+            icon: const Icon(Icons.bar_chart_outlined),
+            selectedIcon: const Icon(Icons.bar_chart_rounded),
+            label: t.t('stats'),
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.person_outline),
             selectedIcon: const Icon(Icons.person_rounded),
             label: t.t('profile'),

@@ -427,3 +427,98 @@ def test_certificate_list_only_own(auth_client):
     )
     resp = client.get(reverse("v1:certificate-list"))
     assert resp.data["count"] == 0
+
+
+# --- Advanced stats dashboard (UX prompt 2.2) ------------------------------- #
+def _practice(user, accuracy_pairs):
+    """Create exercise attempts: [(exercise, is_correct), ...]."""
+    from apps.exercises.models import ExerciseAttempt
+
+    for exercise, ok in accuracy_pairs:
+        ExerciseAttempt.objects.create(
+            user=user, exercise=exercise, answer={}, is_correct=ok,
+            score=1 if ok else 0,
+        )
+
+
+def test_stats_overview_counts(auth_client):
+    client, user = auth_client
+    lesson = Lesson.objects.first()
+    Progress.objects.create(
+        user=user, lesson=lesson, status=Progress.Status.COMPLETED,
+        time_spent=300, completed_at=timezone.now(),
+    )
+    from apps.content.models import VocabularyItem
+
+    item = VocabularyItem.objects.first()
+    VocabularyProgress.objects.create(
+        user=user, vocabulary_item=item,
+        status=VocabularyProgress.Status.MASTERED, correct_count=3,
+    )
+    resp = client.get(reverse("v1:stats-overview"))
+    assert resp.status_code == 200
+    assert resp.data["lessons_completed"] == 1
+    assert resp.data["words_learned"] == 1
+    assert resp.data["words_mastered"] == 1
+    assert resp.data["total_time_seconds"] == 300
+    assert 0 < resp.data["overall_percent"] <= 100
+
+
+def test_vocabulary_heatmap_percent(auth_client):
+    client, user = auth_client
+    from apps.content.models import VocabularyItem
+
+    item = VocabularyItem.objects.select_related(
+        "component__lesson__unit"
+    ).first()
+    VocabularyProgress.objects.create(
+        user=user, vocabulary_item=item,
+        status=VocabularyProgress.Status.LEARNED, correct_count=1,
+    )
+    resp = client.get(reverse("v1:stats-vocab-heatmap"))
+    assert resp.status_code == 200
+    unit_id = str(item.component.lesson.unit_id)
+    row = next(u for u in resp.data["units"] if u["unit_id"] == unit_id)
+    assert row["learned_words"] == 1
+    assert row["percent"] > 0
+    assert row["status"] in ("strong", "growing", "weak")
+
+
+def test_grammar_skills_and_weak_areas(auth_client):
+    client, user = auth_client
+    from apps.exercises.models import Exercise
+
+    exercise = Exercise.objects.select_related(
+        "component__lesson__unit"
+    ).first()
+    # 1 correct out of 4 -> weak area (accuracy 25%, >= 3 attempts).
+    _practice(user, [(exercise, True), (exercise, False),
+                     (exercise, False), (exercise, False)])
+
+    resp = client.get(reverse("v1:stats-grammar-skills"))
+    assert resp.status_code == 200
+    skill = resp.data["skills"][0]
+    assert skill["attempts"] == 4
+    assert skill["accuracy"] == 25
+    assert skill["status"] == "weak"
+
+    resp = client.get(reverse("v1:stats-weak-areas"))
+    areas = resp.data["areas"]
+    assert len(areas) == 1
+    assert areas[0]["accuracy"] == 25
+    assert areas[0]["practice_lesson_id"]
+
+
+def test_time_investment_buckets(auth_client):
+    client, user = auth_client
+    lesson = Lesson.objects.first()
+    Progress.objects.create(
+        user=user, lesson=lesson, status=Progress.Status.COMPLETED,
+        time_spent=600, completed_at=timezone.now(),
+    )
+    resp = client.get(reverse("v1:stats-time-investment"))
+    assert resp.status_code == 200
+    assert len(resp.data["days"]) == 30
+    assert len(resp.data["weeks"]) == 4
+    assert resp.data["total_seconds"] == 600
+    assert resp.data["days"][-1]["seconds"] == 600  # logged today

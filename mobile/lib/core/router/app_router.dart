@@ -21,6 +21,7 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/profile/settings_screen.dart';
 import '../../features/progress/certificates_screen.dart';
 import '../../features/progress/progress_screen.dart';
+import '../../features/stats/stats_screen.dart';
 import '../widgets/home_shell.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -67,6 +68,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/learn', builder: (_, __) => const LevelsScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/stats', builder: (_, __) => const StatsScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),

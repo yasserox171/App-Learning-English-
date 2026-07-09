@@ -1,6 +1,13 @@
 """Progress / placement / certificate routes (master prompt §10)."""
 from django.urls import path
 
+from .stats import (
+    GrammarSkillsView,
+    StatsOverviewView,
+    TimeInvestmentView,
+    VocabularyHeatmapView,
+    WeakAreasView,
+)
 from .views import (
     CertificateListView,
     CertificatePdfView,
@@ -27,6 +34,12 @@ urlpatterns = [
     path("units/<uuid:pk>/rating", UnitRatingView.as_view(), name="unit-rating"),
     # Vocabulary tracking
     path("vocab/track", VocabTrackView.as_view(), name="vocab-track"),
+    # Advanced stats dashboard (UX prompt 2.2)
+    path("user/stats/overview", StatsOverviewView.as_view(), name="stats-overview"),
+    path("user/stats/vocabulary-heatmap", VocabularyHeatmapView.as_view(), name="stats-vocab-heatmap"),
+    path("user/stats/grammar-skills", GrammarSkillsView.as_view(), name="stats-grammar-skills"),
+    path("user/stats/weak-areas", WeakAreasView.as_view(), name="stats-weak-areas"),
+    path("user/stats/time-investment", TimeInvestmentView.as_view(), name="stats-time-investment"),
     # Certificates
     path("certificates", CertificateListView.as_view(), name="certificate-list"),
     path("certificates/<uuid:pk>/pdf", CertificatePdfView.as_view(), name="certificate-pdf"),
