@@ -522,3 +522,56 @@ def test_time_investment_buckets(auth_client):
     assert len(resp.data["weeks"]) == 4
     assert resp.data["total_seconds"] == 600
     assert resp.data["days"][-1]["seconds"] == 600  # logged today
+
+
+# --- Achievements + notification preferences (UX prompt 2.3 / 3.2) ---------- #
+def test_achievements_unlock_first_lesson(auth_client):
+    client, user = auth_client
+    resp = client.get(reverse("v1:achievements-all"))
+    assert resp.status_code == 200
+    assert resp.data["newly_unlocked"] == []
+    assert all(not b["unlocked"] for b in resp.data["badges"])
+
+    Progress.objects.create(
+        user=user,
+        lesson=Lesson.objects.first(),
+        status=Progress.Status.COMPLETED,
+        completed_at=timezone.now(),
+    )
+    resp = client.get(reverse("v1:achievements-all"))
+    assert "first_lesson" in resp.data["newly_unlocked"]
+    badge = next(b for b in resp.data["badges"] if b["type"] == "first_lesson")
+    assert badge["unlocked"] is True and badge["title_ar"]
+
+    # Second call: still unlocked, no longer "new".
+    resp = client.get(reverse("v1:achievements-all"))
+    assert resp.data["newly_unlocked"] == []
+
+    resp = client.get(reverse("v1:achievements"))
+    assert [b["type"] for b in resp.data["badges"]] == ["first_lesson"]
+
+
+def test_notification_preferences_roundtrip(auth_client):
+    client, _ = auth_client
+    resp = client.get(reverse("v1:notification-preferences"))
+    assert resp.status_code == 200
+    assert resp.data["streak_reminder"] is True
+    assert resp.data["preferred_time"] == "08:00"
+
+    resp = client.post(
+        reverse("v1:notification-preferences"),
+        {"streak_reminder": False, "preferred_time": "20:30"},
+        format="json",
+    )
+    assert resp.status_code == 200
+    assert resp.data["streak_reminder"] is False
+    assert resp.data["preferred_time"] == "20:30"
+    # unchanged flags keep their defaults
+    assert resp.data["achievement_alert"] is True
+
+    resp = client.post(
+        reverse("v1:notification-preferences"),
+        {"preferred_time": "bogus"},
+        format="json",
+    )
+    assert resp.status_code == 400

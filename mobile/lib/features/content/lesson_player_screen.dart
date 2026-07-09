@@ -5,9 +5,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/feedback/feedback_service.dart';
 import '../../core/i18n/app_localizations.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/feedback_fx.dart';
 import '../../core/widgets/markdown_text.dart';
+import '../achievements/achievements_screen.dart';
+import '../achievements/data/achievements_repository.dart';
 import '../exercises/data/exercise_repository.dart';
 import '../exercises/exercise_view.dart';
 import '../progress/data/progress_repository.dart';
@@ -74,6 +77,35 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
   }
 
   void _onResult(String id, AttemptResult r) => _results[id] = r;
+
+  /// After a completion, ask the backend to re-evaluate badges; pop a dialog
+  /// (and a local notification, when allowed) for anything newly unlocked.
+  Future<void> _checkAchievements() async {
+    try {
+      final payload =
+          await ref.read(achievementsRepositoryProvider).all();
+      if (!mounted || payload.newlyUnlocked.isEmpty) return;
+      ref.invalidate(achievementsProvider);
+
+      final prefs = await ref
+          .read(achievementsRepositoryProvider)
+          .notificationPrefs()
+          .catchError((_) => const NotificationPrefs());
+      final lang =
+          AppLocalizations.of(context).locale.languageCode;
+      for (final type in payload.newlyUnlocked) {
+        final badge =
+            payload.badges.where((b) => b.type == type).firstOrNull;
+        if (badge == null) continue;
+        if (prefs.achievementAlert) {
+          ref.read(notificationServiceProvider).showAchievement(
+              '${badge.icon} ${badge.title(lang)}',
+              badge.description(lang));
+        }
+        if (mounted) await showAchievementDialog(context, badge);
+      }
+    } catch (_) {/* badges are decoration — never block the flow */}
+  }
 
   void _onQuizDone(int correct, int total) {
     _quizCorrect = correct;
@@ -150,6 +182,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
                 .streak;
             return LessonResultView(
               percent: _resultPercent,
+              lessonTitle: l.title,
               wordsLearned: _quizCorrect > 0 ? _quizCorrect : null,
               exercisesCorrect:
                   _results.values.where((r) => r.isCorrect).length,
@@ -329,6 +362,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
           _resultPercent = _computePercent();
           _finished = true;
         });
+        _checkAchievements();
       }
     } catch (e) {
       if (mounted) {

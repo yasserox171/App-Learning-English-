@@ -2,19 +2,23 @@ import 'dart:math';
 
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../core/config.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 
 /// Celebration screen shown after finishing a lesson (UX prompt feature 8):
 /// confetti + trophy + stars + a summary of words learned, exercise score,
-/// time spent and the daily streak.
+/// time spent and the daily streak, plus a "share your achievement" button
+/// (UX prompt 3.1).
 class LessonResultView extends StatefulWidget {
   const LessonResultView({
     super.key,
     required this.percent,
     required this.onRetry,
     required this.onContinue,
+    this.lessonTitle,
     this.wordsLearned,
     this.exercisesCorrect,
     this.exercisesTotal,
@@ -25,6 +29,7 @@ class LessonResultView extends StatefulWidget {
   final int percent;
   final VoidCallback onRetry;
   final VoidCallback onContinue;
+  final String? lessonTitle;
   final int? wordsLearned;
   final int? exercisesCorrect;
   final int? exercisesTotal;
@@ -58,6 +63,15 @@ class _LessonResultViewState extends State<LessonResultView> {
           : widget.percent >= 50
               ? 1
               : 0;
+
+  void _share(AppLocalizations t) {
+    final title = widget.lessonTitle ?? '';
+    final text = t
+        .t('share_lesson_text')
+        .replaceFirst('{lesson}', title)
+        .replaceFirst('{percent}', '${widget.percent}');
+    Share.share('$text\n${AppConfig.downloadUrl}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +133,12 @@ class _LessonResultViewState extends State<LessonResultView> {
                   streak: widget.streak,
                 ),
                 const SizedBox(height: 20),
+                TextButton.icon(
+                  onPressed: () => _share(t),
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: Text(t.t('share_achievement')),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(

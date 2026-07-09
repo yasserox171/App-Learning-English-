@@ -260,3 +260,67 @@ class VocabTrackView(APIView):
             row.record(r["correct"])
             updated += 1
         return Response({"updated": updated})
+
+
+# --- Achievements (UX prompt 3.2) ------------------------------------------- #
+class AchievementListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .achievements import catalog_payload
+
+        payload = catalog_payload(request.user)
+        payload["badges"] = [b for b in payload["badges"] if b["unlocked"]]
+        return Response(payload)
+
+
+class AchievementCatalogView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .achievements import catalog_payload
+
+        return Response(catalog_payload(request.user))
+
+
+# --- Notification preferences (UX prompt 2.3) -------------------------------- #
+class NotificationPreferenceView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    _FLAGS = (
+        "streak_reminder",
+        "content_alert",
+        "weak_area_alert",
+        "achievement_alert",
+    )
+
+    def _payload(self, pref):
+        data = {flag: getattr(pref, flag) for flag in self._FLAGS}
+        data["preferred_time"] = str(pref.preferred_time)[:5]
+        return data
+
+    def get(self, request):
+        from .models import NotificationPreference
+
+        pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        return Response(self._payload(pref))
+
+    def post(self, request):
+        from .models import NotificationPreference
+
+        pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
+        data = request.data if isinstance(request.data, dict) else {}
+        for flag in self._FLAGS:
+            if flag in data:
+                setattr(pref, flag, bool(data[flag]))
+        if "preferred_time" in data:
+            try:
+                hh, mm = str(data["preferred_time"]).split(":")[:2]
+                pref.preferred_time = f"{int(hh):02d}:{int(mm):02d}"
+            except (ValueError, TypeError):
+                return Response(
+                    {"detail": "preferred_time must be HH:MM"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        pref.save()
+        return Response(self._payload(pref))

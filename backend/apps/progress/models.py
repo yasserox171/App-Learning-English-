@@ -190,3 +190,44 @@ class Certificate(BaseModel):
 
     def __str__(self):
         return self.certificate_number
+
+
+class UserAchievement(BaseModel):
+    """An unlocked badge (UX prompt 3.2). The catalog and unlock rules live in
+    achievements.py; rows are inserted when a rule is first satisfied."""
+
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="achievements"
+    )
+    achievement_type = models.CharField(max_length=50)
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "user_achievements"
+        unique_together = [("user", "achievement_type")]
+        ordering = ["-unlocked_at"]
+
+    def __str__(self):
+        return f"{self.user_id} · {self.achievement_type}"
+
+
+class NotificationPreference(BaseModel):
+    """Per-user smart-notification switches (UX prompt 2.3). The app reads
+    these to schedule/cancel its local notifications."""
+
+    user = models.OneToOneField(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="notification_preference",
+    )
+    streak_reminder = models.BooleanField(default=True)
+    content_alert = models.BooleanField(default=True)
+    weak_area_alert = models.BooleanField(default=True)
+    achievement_alert = models.BooleanField(default=True)
+    preferred_time = models.TimeField(default="08:00")
+
+    class Meta:
+        db_table = "notification_preferences"
+
+    def __str__(self):
+        return f"{self.user_id} @ {self.preferred_time}"

@@ -3,21 +3,48 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../i18n/app_localizations.dart';
+import '../notifications/notification_service.dart';
+import '../../features/achievements/data/achievements_repository.dart';
 import '../../features/auth/auth_controller.dart';
 import 'app_logo.dart';
 
 /// Key for the shell Scaffold so inner tab screens can open the side drawer.
 final homeScaffoldKey = GlobalKey<ScaffoldState>();
 
-/// Scaffold with a bottom NavigationBar (home / learn / profile) plus the side
-/// drawer (design screen 25).
-class HomeShell extends ConsumerWidget {
+/// Scaffold with a bottom NavigationBar (home / learn / stats / profile) plus
+/// the side drawer (design screen 25).
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  StatefulNavigationShell get navigationShell => widget.navigationShell;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-arm the daily streak reminder from the synced preferences every time
+    // the signed-in shell mounts (fresh install, re-login, app update).
+    Future(() async {
+      try {
+        final prefs = await ref
+            .read(achievementsRepositoryProvider)
+            .notificationPrefs();
+        await ref.read(notificationServiceProvider).scheduleStreakReminder(
+              enabled: prefs.streakReminder,
+              time: TimeOfDay(hour: prefs.hour, minute: prefs.minute),
+            );
+      } catch (_) {/* offline — reminders stay as previously scheduled */}
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return Scaffold(
       key: homeScaffoldKey,
@@ -108,6 +135,11 @@ class _AppDrawer extends ConsumerWidget {
               leading: const Icon(Icons.workspace_premium_rounded),
               title: Text(t.t('certificates')),
               onTap: () => go('/certificates', push: true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.emoji_events_rounded),
+              title: Text(t.t('achievements')),
+              onTap: () => go('/achievements', push: true),
             ),
             ListTile(
               leading: const Icon(Icons.settings_rounded),

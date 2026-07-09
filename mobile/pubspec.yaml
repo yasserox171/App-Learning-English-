@@ -42,6 +42,10 @@ dependencies:
   # longer supports -> build failure. 7.x fixed this and needs web ^1.0.0,
   # so share_plus is upgraded alongside it to keep the resolver happy.
   speech_to_text: ^7.0.0
+  # Smart notifications (daily streak reminder, achievement unlocks).
+  # Requires core library desugaring — enabled in android/app/build.gradle.kts.
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:

@@ -9,6 +9,9 @@ from .stats import (
     WeakAreasView,
 )
 from .views import (
+    AchievementCatalogView,
+    AchievementListView,
+    NotificationPreferenceView,
     CertificateListView,
     CertificatePdfView,
     LessonPhaseView,
@@ -40,6 +43,10 @@ urlpatterns = [
     path("user/stats/grammar-skills", GrammarSkillsView.as_view(), name="stats-grammar-skills"),
     path("user/stats/weak-areas", WeakAreasView.as_view(), name="stats-weak-areas"),
     path("user/stats/time-investment", TimeInvestmentView.as_view(), name="stats-time-investment"),
+    # Achievements + notification preferences (UX prompt 2.3 / 3.2)
+    path("user/achievements", AchievementListView.as_view(), name="achievements"),
+    path("user/achievements/all", AchievementCatalogView.as_view(), name="achievements-all"),
+    path("notifications/preferences", NotificationPreferenceView.as_view(), name="notification-preferences"),
     # Certificates
     path("certificates", CertificateListView.as_view(), name="certificate-list"),
     path("certificates/<uuid:pk>/pdf", CertificatePdfView.as_view(), name="certificate-pdf"),
