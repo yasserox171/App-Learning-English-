@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/config.dart';
@@ -169,19 +166,6 @@ class ProgressRepository {
     return list
         .map((e) => Certificate.fromJson(e as Map<String, dynamic>))
         .toList();
-  }
-
-  /// Downloads the (auth-protected) certificate PDF to a temp file and returns
-  /// its path, so it can be opened or shared.
-  Future<String> downloadCertificatePdf(Certificate cert) async {
-    final res = await _dio.get<List<int>>(
-      '/certificates/${cert.id}/pdf',
-      options: Options(responseType: ResponseType.bytes),
-    );
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/${cert.number}.pdf');
-    await file.writeAsBytes(res.data ?? const []);
-    return file.path;
   }
 
   Future<Map<String, dynamic>> updateLesson(

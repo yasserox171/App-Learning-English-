@@ -18,8 +18,8 @@ django-cors-headers==4.3.1
 django-filter==24.2
 drf-spectacular==0.27.2
 
-# Certificates (PDF) — used from Phase 5
-reportlab==4.2.0
+# Certificates (PDF): rendered by the dependency-free generator in
+# apps/progress/certificate_pdf.py — no PDF library needed.
 
 # Dev / testing
 pytest==8.2.1

@@ -5,10 +5,16 @@
     <!-- Pronunciation training records the learner's voice for on-device
          speech recognition. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Saving certificate PDFs into the shared Downloads folder. Android 11+
+         allows creating files there without any permission; the legacy flag
+         covers Android 10 and the permission covers 9 and below. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
     <application
         android:label="lms_mobile"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

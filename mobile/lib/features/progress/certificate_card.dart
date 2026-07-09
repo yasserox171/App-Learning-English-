@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/level_seal.dart';
+import 'certificate_download_service.dart';
 import 'data/progress_repository.dart';
 
 /// ABA-style level certificate card: guilloche seal + level name, with
@@ -30,15 +31,22 @@ class LevelCertificateCard extends ConsumerStatefulWidget {
 
 class _LevelCertificateCardState extends ConsumerState<LevelCertificateCard> {
   bool _busy = false;
+  double _progress = 0;
 
-  Future<String?> _download() async {
+  Future<CertificateDownloadResult?> _download() async {
     final cert = widget.cert;
     if (cert == null) return null;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _progress = 0;
+    });
     try {
-      return await ref
-          .read(progressRepositoryProvider)
-          .downloadCertificatePdf(cert);
+      return await ref.read(certificateDownloadServiceProvider).download(
+            cert,
+            onProgress: (p) {
+              if (mounted) setState(() => _progress = p);
+            },
+          );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -48,6 +56,16 @@ class _LevelCertificateCardState extends ConsumerState<LevelCertificateCard> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// System share sheet with the PDF attached — reaches WhatsApp, Email,
+  /// Drive, etc. (UX prompt 1.2).
+  Future<void> _shareFile(String path) async {
+    final t = AppLocalizations.of(context);
+    final text = t
+        .t('share_certificate_text')
+        .replaceFirst('{level}', '${widget.levelCode} — ${widget.levelName}');
+    await Share.shareXFiles([XFile(path)], text: text);
   }
 
   Future<void> _addToLinkedIn() async {
@@ -113,27 +131,51 @@ class _LevelCertificateCardState extends ConsumerState<LevelCertificateCard> {
             else ...[
               const Divider(height: 1),
               const SizedBox(height: 6),
-              TextButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () async {
-                        final path = await _download();
-                        if (path != null && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text('${t.t('download_pdf')} ✓')),
-                          );
-                        }
-                      },
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.download_rounded),
-                label: Text(t.t('download_pdf'),
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
+              if (_busy) ...[
+                // Live download progress (UX prompt 1.2).
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 10),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: _progress > 0 ? _progress : null,
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${t.t('downloading')} '
+                        '${(_progress * 100).round()}%',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ] else
+                TextButton.icon(
+                  onPressed: () async {
+                    final result = await _download();
+                    if (result != null && mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(result.savedToDownloads
+                              ? t.t('saved_to_downloads')
+                              : t.t('saved_to_app_files')),
+                          action: SnackBarAction(
+                            label: t.t('share'),
+                            onPressed: () => _shareFile(result.path),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded),
+                  label: Text(t.t('download_pdf'),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
               const SizedBox(height: 4),
               FilledButton.icon(
                 style:
@@ -151,12 +193,8 @@ class _LevelCertificateCardState extends ConsumerState<LevelCertificateCard> {
                 onPressed: _busy
                     ? null
                     : () async {
-                        final path = await _download();
-                        if (path != null) {
-                          await Share.shareXFiles([XFile(path)],
-                              text:
-                                  '${widget.levelName} — English Master');
-                        }
+                        final result = await _download();
+                        if (result != null) await _shareFile(result.path);
                       },
                 icon: const Icon(Icons.share_rounded),
                 label: Text(t.t('share')),

@@ -1,6 +1,6 @@
 # Termux / on-phone setup — uses SQLite, no PostgreSQL driver needed.
-# (reportlab is omitted; it's only needed for certificate PDFs and is
-#  imported lazily, so everything else works without it.)
+# Certificate PDFs are rendered by the dependency-free generator in
+# apps/progress/certificate_pdf.py, so no PDF library is required here.
 
 Django==5.0.6
 djangorestframework==3.15.1

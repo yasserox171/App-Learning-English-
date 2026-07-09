@@ -377,6 +377,47 @@ def test_certificate_pdf_download(auth_client):
     assert resp.content[:4] == b"%PDF"
 
 
+def _pdf_page_text(pdf_bytes: bytes) -> str:
+    """Inflate the (single) Flate content stream of our generated PDF."""
+    import zlib
+
+    start = pdf_bytes.index(b"stream\n") + len(b"stream\n")
+    end = pdf_bytes.index(b"\nendstream", start)
+    return zlib.decompress(pdf_bytes[start:end]).decode("latin-1")
+
+
+def test_certificate_pdf_renders_details(auth_client):
+    client, user = auth_client
+    user.full_name = "Yasser Abdelaziz"
+    user.save()
+    level = Level.objects.get(code="A1")
+    cert = Certificate.objects.create(
+        user=user, level=level, certificate_number="CERT-A1-TEST5678"
+    )
+    resp = client.get(reverse("v1:certificate-pdf", args=[cert.id]))
+    text = _pdf_page_text(resp.content)
+    assert "Yasser Abdelaziz" in text
+    assert "CERTIFICATE" in text
+    assert "LEVEL A1" in text
+    assert "CERT-A1-TEST5678" in text
+
+
+def test_certificate_pdf_arabic_name_falls_back_to_email(auth_client):
+    # The standard PDF fonts can't render Arabic script; the renderer must
+    # fall back to the email handle instead of emitting broken glyphs.
+    client, user = auth_client
+    user.full_name = "ياسر عبد العزيز"
+    user.save()
+    level = Level.objects.get(code="A1")
+    cert = Certificate.objects.create(
+        user=user, level=level, certificate_number="CERT-A1-TEST9999"
+    )
+    resp = client.get(reverse("v1:certificate-pdf", args=[cert.id]))
+    assert resp.status_code == 200
+    text = _pdf_page_text(resp.content)
+    assert user.email.split("@")[0] in text
+
+
 def test_certificate_list_only_own(auth_client):
     client, user = auth_client
     other = User.objects.create_user(email="other@test.com", password="pass12345")

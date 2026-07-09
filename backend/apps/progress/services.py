@@ -2,7 +2,6 @@
 
 Level progress is COMPUTED here, never stored.
 """
-import io
 import uuid
 from datetime import timedelta
 
@@ -332,41 +331,8 @@ def _generate_number(level: Level) -> str:
 
 
 def generate_certificate_pdf(certificate: Certificate) -> bytes:
-    """Render a simple certificate PDF with reportlab."""
-    from reportlab.lib.pagesizes import landscape, A4
-    from reportlab.lib.units import cm
-    from reportlab.pdfgen import canvas
+    """Render the branded certificate PDF (dependency-free renderer — works
+    on the Termux deployment, where reportlab isn't installed)."""
+    from .certificate_pdf import generate_certificate_pdf as render
 
-    buffer = io.BytesIO()
-    width, height = landscape(A4)
-    pdf = canvas.Canvas(buffer, pagesize=landscape(A4))
-
-    pdf.setFont("Helvetica-Bold", 32)
-    pdf.drawCentredString(width / 2, height - 4 * cm, "Certificate of Completion")
-
-    pdf.setFont("Helvetica", 16)
-    pdf.drawCentredString(width / 2, height - 6 * cm, "This certifies that")
-
-    pdf.setFont("Helvetica-Bold", 24)
-    name = certificate.user.full_name or certificate.user.email
-    pdf.drawCentredString(width / 2, height - 7.5 * cm, name)
-
-    pdf.setFont("Helvetica", 16)
-    pdf.drawCentredString(
-        width / 2, height - 9 * cm,
-        f"has successfully completed level {certificate.level.name}",
-    )
-
-    pdf.setFont("Helvetica", 12)
-    pdf.drawCentredString(
-        width / 2, 3 * cm,
-        f"Certificate No: {certificate.certificate_number}",
-    )
-    pdf.drawCentredString(
-        width / 2, 2.3 * cm,
-        f"Issued: {certificate.issued_at:%Y-%m-%d}",
-    )
-
-    pdf.showPage()
-    pdf.save()
-    return buffer.getvalue()
+    return render(certificate)

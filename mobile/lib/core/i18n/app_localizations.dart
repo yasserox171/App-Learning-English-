@@ -117,6 +117,11 @@ class AppLocalizations {
       'add_to_linkedin': 'Add to LinkedIn',
       'earn_certificate_hint':
           'Complete all lessons to earn your certificate.',
+      'downloading': 'Downloading…',
+      'saved_to_downloads': 'Saved to the Downloads folder',
+      'saved_to_app_files': 'Saved inside the app files',
+      'share_certificate_text':
+          'I earned my {level} English certificate at Focus Languages!',
       'video_lesson': 'Video lesson',
       'vocabulary_step': 'Vocabulary',
       'exercises_step': 'Exercises',
@@ -259,6 +264,11 @@ class AppLocalizations {
       'level_certificate': 'شهادة المستوى',
       'add_to_linkedin': 'إضافة إلى LinkedIn',
       'earn_certificate_hint': 'أكمل كل الدروس للحصول على شهادتك.',
+      'downloading': 'جارٍ التحميل…',
+      'saved_to_downloads': 'تم الحفظ في مجلد التنزيلات',
+      'saved_to_app_files': 'تم الحفظ داخل ملفات التطبيق',
+      'share_certificate_text':
+          'حصلت على شهادة مستوى {level} في اللغة الإنجليزية من Focus Languages!',
       'video_lesson': 'درس فيديو',
       'vocabulary_step': 'المفردات',
       'exercises_step': 'التمارين',
