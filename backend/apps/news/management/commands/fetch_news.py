@@ -114,17 +114,42 @@ def build_exercises(title: str, summary: str) -> list:
     return exercises
 
 
-_DEMO_STORY = {
-    "title": "Morocco Prepares to Host the Africa Cup of Nations",
-    "title_ar": "المغرب يستعد لاستضافة كأس أمم أفريقيا",
-    "description": (
-        "Morocco is getting ready to welcome teams and fans from across the "
-        "continent. Stadiums in six cities are being renovated, and thousands "
-        "of volunteers are training to help visitors enjoy the tournament."
-    ),
-    "source": "Demo",
-    "urlToImage": "",
-}
+_DEMO_STORIES = [
+    {
+        "title": "Morocco Prepares to Host the Africa Cup of Nations",
+        "title_ar": "المغرب يستعد لاستضافة كأس أمم أفريقيا",
+        "description": (
+            "Morocco is getting ready to welcome teams and fans from across "
+            "the continent. Stadiums in six cities are being renovated, and "
+            "thousands of volunteers are training to help visitors enjoy the "
+            "tournament."
+        ),
+        "source": "Demo",
+        "urlToImage": "",
+    },
+    {
+        "title": "Scientists Discover Coral Reef Recovering Near the Coast",
+        "title_ar": "علماء يكتشفون شعاباً مرجانية تتعافى قرب الساحل",
+        "description": (
+            "Marine researchers found that a large coral reef is growing "
+            "again after years of decline. Warmer waters had damaged the "
+            "coral, but new protection rules are helping it recover."
+        ),
+        "source": "Demo",
+        "urlToImage": "",
+    },
+    {
+        "title": "New Train Line Connects Students to Universities Faster",
+        "title_ar": "خط قطار جديد يوصل الطلاب إلى الجامعات بشكل أسرع",
+        "description": (
+            "A modern train line opened this week, cutting travel time "
+            "between major cities in half. Students say the faster journey "
+            "gives them more time to study and rest."
+        ),
+        "source": "Demo",
+        "urlToImage": "",
+    },
+]
 
 
 class Command(BaseCommand):
@@ -133,8 +158,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--country", default=None,
                             help="2-letter country code (default: env NEWS_COUNTRY or 'ma')")
+        parser.add_argument("--count", type=int, default=3,
+                            help="Max new stories to import per run (default 3)")
         parser.add_argument("--demo", action="store_true",
-                            help="Create an offline sample story (no API key needed)")
+                            help="Create offline sample stories (no API key needed)")
 
     def handle(self, *args, **options):
         import os
@@ -146,60 +173,67 @@ class Command(BaseCommand):
             self.stdout.write(f"Pruned {removed} expired news row(s).")
 
         country = (options["country"] or os.environ.get("NEWS_COUNTRY") or "ma").lower()
+        count = max(options["count"], 1)
 
         if options["demo"]:
-            raw = dict(_DEMO_STORY)
+            candidates = [dict(s) for s in _DEMO_STORIES]
         else:
             api_key = os.environ.get("NEWSAPI_KEY", "")
             if not api_key:
                 raise CommandError(
                     "NEWSAPI_KEY is not set. Get a free key at newsapi.org, "
-                    "export NEWSAPI_KEY=..., or run with --demo."
+                    "add NEWSAPI_KEY=... to backend/.env, or run with --demo."
                 )
-            raw = self._fetch_top_headline(api_key, country)
-            if raw is None:
-                self.stdout.write(self.style.WARNING("No usable headline today."))
-                return
+            candidates = self._fetch_top_headlines(api_key, country)
 
-        title = (raw.get("title") or "").split(" - ")[0].strip()
-        summary = (raw.get("description") or "").strip()
+        imported = 0
+        for raw in candidates:
+            if imported >= count:
+                break
+            title = (raw.get("title") or "").split(" - ")[0].strip()
+            summary = (raw.get("description") or "").strip()
+            if not title or not summary:
+                continue
+            if NewsArticle.objects.filter(title_en=title).exists():
+                continue
 
-        if NewsArticle.objects.filter(title_en=title).exists():
-            self.stdout.write("Today's story is already imported.")
-            return
-
-        article = NewsArticle.objects.create(
-            title_en=title,
-            title_ar=raw.get("title_ar", ""),
-            content_short=summary,
-            source=(raw.get("source") or {}).get("name", "")
-            if isinstance(raw.get("source"), dict) else str(raw.get("source") or ""),
-            image_url=raw.get("urlToImage") or "",
-            country=country,
-        )
-        for i, ex in enumerate(build_exercises(title, summary)):
-            NewsExercise.objects.create(
-                article=article,
-                template=ex["template"],
-                content=ex["content"],
-                order=i,
+            article = NewsArticle.objects.create(
+                title_en=title,
+                title_ar=raw.get("title_ar", ""),
+                content_short=summary,
+                source=(raw.get("source") or {}).get("name", "")
+                if isinstance(raw.get("source"), dict)
+                else str(raw.get("source") or ""),
+                image_url=raw.get("urlToImage") or "",
+                country=country,
             )
-        self.stdout.write(self.style.SUCCESS(
-            f"Imported: {article.title_en} "
-            f"({article.exercises.count()} exercises)"
-        ))
+            for i, ex in enumerate(build_exercises(title, summary)):
+                NewsExercise.objects.create(
+                    article=article,
+                    template=ex["template"],
+                    content=ex["content"],
+                    order=i,
+                )
+            imported += 1
+            self.stdout.write(self.style.SUCCESS(
+                f"Imported: {article.title_en} "
+                f"({article.exercises.count()} exercises)"
+            ))
 
-    def _fetch_top_headline(self, api_key: str, country: str):
-        """First top headline that has both a title and a description."""
+        if imported == 0:
+            self.stdout.write("No new stories to import.")
+
+    def _fetch_top_headlines(self, api_key: str, country: str) -> list:
+        """Top headlines that have both a title and a description."""
         query = urllib.parse.urlencode({
             "country": country,
-            "pageSize": 10,
+            "pageSize": 20,
             "apiKey": api_key,
         })
         url = f"https://newsapi.org/v2/top-headlines?{query}"
         with urllib.request.urlopen(url, timeout=20) as resp:
             data = json.load(resp)
-        for item in data.get("articles", []):
-            if item.get("title") and item.get("description"):
-                return item
-        return None
+        return [
+            item for item in data.get("articles", [])
+            if item.get("title") and item.get("description")
+        ]

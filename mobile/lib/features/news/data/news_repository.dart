@@ -60,6 +60,34 @@ class NewsArticle {
       );
 }
 
+/// Archive row — enough for the Home list, without the exercises payload.
+class NewsSummary {
+  NewsSummary({
+    required this.id,
+    required this.titleEn,
+    required this.titleAr,
+    required this.source,
+    required this.imageUrl,
+    required this.difficulty,
+  });
+
+  final String id;
+  final String titleEn;
+  final String titleAr;
+  final String source;
+  final String imageUrl;
+  final String difficulty;
+
+  factory NewsSummary.fromJson(Map<String, dynamic> j) => NewsSummary(
+        id: j['id'],
+        titleEn: j['title_en'] ?? '',
+        titleAr: j['title_ar'] ?? '',
+        source: j['source'] ?? '',
+        imageUrl: j['image_url'] ?? '',
+        difficulty: j['difficulty'] ?? '',
+      );
+}
+
 class NewsSubmitResult {
   NewsSubmitResult({required this.isCorrect, required this.correctAnswer});
 
@@ -81,6 +109,24 @@ class NewsRepository {
       if (e.response?.statusCode == 404) return null;
       rethrow;
     }
+  }
+
+  /// Recent unexpired stories (newest first) for the Home list.
+  Future<List<NewsSummary>> archive() async {
+    final res = await _dio.get('/news/archive');
+    final data = res.data;
+    final list = (data is Map && data.containsKey('results'))
+        ? data['results'] as List
+        : data as List;
+    return [
+      for (final e in list) NewsSummary.fromJson(e as Map<String, dynamic>),
+    ];
+  }
+
+  /// One story with its exercises (opened from the Home list).
+  Future<NewsArticle> byId(String id) async {
+    final res = await _dio.get('/news/$id');
+    return NewsArticle.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<NewsSubmitResult> submit(
@@ -106,4 +152,12 @@ final newsRepositoryProvider = Provider<NewsRepository>(
 
 final dailyNewsProvider = FutureProvider<NewsArticle?>(
   (ref) => ref.read(newsRepositoryProvider).daily(),
+);
+
+final newsArchiveProvider = FutureProvider<List<NewsSummary>>(
+  (ref) => ref.read(newsRepositoryProvider).archive(),
+);
+
+final newsArticleProvider = FutureProvider.family<NewsArticle, String>(
+  (ref, id) => ref.read(newsRepositoryProvider).byId(id),
 );

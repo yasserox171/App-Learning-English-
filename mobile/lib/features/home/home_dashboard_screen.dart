@@ -24,7 +24,10 @@ class HomeDashboardScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(progressOverviewProvider),
+          onRefresh: () async {
+            ref.invalidate(progressOverviewProvider);
+            ref.invalidate(newsArchiveProvider);
+          },
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -75,7 +78,6 @@ class HomeDashboardScreen extends ConsumerWidget {
                         onTap: () => context.go('/learn'),
                       ),
                       const SizedBox(height: 14),
-                      const _NewsCard(),
                       if (s.next != null)
                         _ContinueCard(
                           next: s.next!,
@@ -84,6 +86,8 @@ class HomeDashboardScreen extends ConsumerWidget {
                         ),
                       if (s.next != null) const SizedBox(height: 14),
                       _StreakCard(streak: s.streak, xp: s.xp),
+                      const SizedBox(height: 14),
+                      const _NewsSection(),
                     ],
                   );
                 },
@@ -96,115 +100,155 @@ class HomeDashboardScreen extends ConsumerWidget {
   }
 }
 
-/// "Today's News" teaser right below the current-level card (UX prompt 2.1).
-/// Hidden entirely while loading, on error, or when no story is published.
-class _NewsCard extends ConsumerWidget {
-  const _NewsCard();
+/// News list below the streak card (owner's sketch): up to 3 recent stories,
+/// each opening its own exercise screen. Hidden entirely while loading, on
+/// error, or when nothing is published.
+class _NewsSection extends ConsumerWidget {
+  const _NewsSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final daily = ref.watch(dailyNewsProvider);
-    final article = daily.valueOrNull;
-    if (article == null) return const SizedBox.shrink();
+    final stories =
+        (ref.watch(newsArchiveProvider).valueOrNull ?? const <NewsSummary>[])
+            .take(3)
+            .toList();
+    if (stories.isEmpty) return const SizedBox.shrink();
 
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => context.push('/news'),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('📰 ${t.t('todays_news')}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(color: AppTheme.primary)),
-                    ),
-                    if (article.difficulty.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(article.difficulty,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.primary)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  article.titleEn,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                if (article.titleAr.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    article.titleAr,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textDirection: TextDirection.rtl,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('📰 ${t.t('todays_news')}',
                     style: Theme.of(context)
                         .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '✏️ ${t.t('news_quiz_free')}',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.success),
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (final story in stories) _NewsRow(story: story),
+      ],
+    );
+  }
+}
+
+class _NewsRow extends StatelessWidget {
+  const _NewsRow({required this.story});
+
+  final NewsSummary story;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/news/${story.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              if (story.imageUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    story.imageUrl,
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const _NewsIcon(),
                   ),
-                ],
-                const SizedBox(height: 10),
-                Row(
+                )
+              else
+                const _NewsIcon(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.menu_book_rounded,
-                        size: 18, color: scheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(t.t('news_read'),
-                        style: Theme.of(context).textTheme.labelMedium),
-                    const SizedBox(width: 14),
-                    Icon(Icons.volume_up_rounded,
-                        size: 18, color: scheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(t.t('listen'),
-                        style: Theme.of(context).textTheme.labelMedium),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.success.withOpacity(0.14),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '✏️ ${t.t('news_quiz_free')}',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.success),
-                      ),
+                    Text(
+                      story.titleEn,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
+                    if (story.titleAr.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        story.titleAr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textDirection: TextDirection.rtl,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              if (story.difficulty.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(story.difficulty,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primary)),
+                ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NewsIcon extends StatelessWidget {
+  const _NewsIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Icon(Icons.newspaper_rounded, color: AppTheme.primary),
     );
   }
 }

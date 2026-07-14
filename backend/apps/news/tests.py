@@ -113,7 +113,7 @@ def test_build_exercises_shapes(db):
             assert 0 <= idx < len(ex["content"]["options"])
 
 
-def test_fetch_news_demo_creates_story_and_prunes(auth_client, db):
+def test_fetch_news_demo_creates_stories_and_prunes(auth_client, db):
     client, _ = auth_client
     _article(
         title_en="Ancient story",
@@ -122,11 +122,16 @@ def test_fetch_news_demo_creates_story_and_prunes(auth_client, db):
     )
     call_command("fetch_news", "--demo")
     assert not NewsArticle.objects.filter(title_en="Ancient story").exists()
+    # --demo seeds 3 stories so the home news list has content on day one.
+    assert NewsArticle.objects.count() == 3
     article = NewsArticle.objects.get(title_en__startswith="Morocco Prepares")
-    assert article.title_ar  # demo story ships with the Arabic headline
+    assert article.title_ar  # demo stories ship with the Arabic headline
     assert article.exercises.count() >= 2
     # running twice must not duplicate
     call_command("fetch_news", "--demo")
-    assert NewsArticle.objects.filter(
-        title_en__startswith="Morocco Prepares"
-    ).count() == 1
+    assert NewsArticle.objects.count() == 3
+
+
+def test_fetch_news_demo_respects_count(db):
+    call_command("fetch_news", "--demo", "--count", "1")
+    assert NewsArticle.objects.count() == 1

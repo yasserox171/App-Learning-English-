@@ -21,7 +21,7 @@ class Level(BaseModel):
         C2 = "C2", "C2"  # owner-approved extension (master prompt §12: six levels)
 
     code = models.CharField(max_length=2, choices=Code.choices, unique=True)
-    name = models.CharField(max_length=100)          # e.g. "A2 - Survival"
+    name = models.CharField(max_length=100)          # e.g. "Survival" (no code prefix)
     name_fr = models.CharField(max_length=100, blank=True)  # e.g. "Survie"
     order = models.PositiveIntegerField(default=0)
     is_free = models.BooleanField(default=False)

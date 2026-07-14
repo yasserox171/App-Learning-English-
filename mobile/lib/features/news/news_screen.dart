@@ -8,20 +8,26 @@ import '../../core/theme/app_theme.dart';
 import '../../core/tts/tts_service.dart';
 import 'data/news_repository.dart';
 
-/// Daily news story with 3 free Duolingo-style exercises (UX prompt 2.1):
-/// read the story, listen to it (TTS), then answer one exercise at a time
-/// with instant server-corrected feedback.
+/// News story with 3 free Duolingo-style exercises (UX prompt 2.1): read the
+/// story, listen to it (TTS), then answer one exercise at a time with instant
+/// server-corrected feedback. Opens a specific story when [articleId] is
+/// given (Home list), otherwise today's story.
 class NewsScreen extends ConsumerWidget {
-  const NewsScreen({super.key});
+  const NewsScreen({super.key, this.articleId});
+
+  final String? articleId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final daily = ref.watch(dailyNewsProvider);
+    final id = articleId;
+    final async = id == null
+        ? ref.watch(dailyNewsProvider)
+        : ref.watch(newsArticleProvider(id));
 
     return Scaffold(
       appBar: AppBar(title: Text('📰 ${t.t('todays_news')}')),
-      body: daily.when(
+      body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (article) {

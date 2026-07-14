@@ -29,13 +29,15 @@ from apps.users.models import User
 # --------------------------------------------------------------------------- #
 # Static seed definitions
 # --------------------------------------------------------------------------- #
+# Names deliberately do NOT repeat the code — the apps render "CODE — name",
+# so a name like "A1 - Breakthrough" would show up as "A1 — A1 - Breakthrough".
 LEVELS = [
-    ("A1", "A1 - Breakthrough", "Découverte", 1, True),
-    ("A2", "A2 - Survival", "Survie", 2, False),
-    ("B1", "B1 - Threshold", "Seuil", 3, False),
-    ("B2", "B2 - Vantage", "Avancé", 4, False),
-    ("C1", "C1 - Advanced", "Autonome", 5, False),
-    ("C2", "C2 - Mastery", "Maîtrise", 6, False),
+    ("A1", "Breakthrough", "Découverte", 1, True),
+    ("A2", "Survival", "Survie", 2, False),
+    ("B1", "Threshold", "Seuil", 3, False),
+    ("B2", "Vantage", "Avancé", 4, False),
+    ("C1", "Advanced", "Autonome", 5, False),
+    ("C2", "Mastery", "Maîtrise", 6, False),
 ]
 
 TEMPLATES = [

@@ -147,6 +147,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,
+        path: '/news/:id',
+        builder: (_, state) =>
+            NewsScreen(articleId: state.pathParameters['id']),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
         path: '/achievements',
         builder: (_, __) => const AchievementsScreen(),
       ),
