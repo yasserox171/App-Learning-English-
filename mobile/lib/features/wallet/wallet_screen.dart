@@ -77,7 +77,7 @@ class _WalletBodyState extends ConsumerState<_WalletBody> {
   }
 
   Future<void> _openWhatsApp() async {
-    final number = AppConfig.whatsappNumber;
+    const number = AppConfig.whatsappNumber;
     if (number.isEmpty) return;
     final uri = Uri.parse(
         'https://wa.me/$number?text=${Uri.encodeComponent("أرغب في الاشتراك المميز")}');

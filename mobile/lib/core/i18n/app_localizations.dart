@@ -24,7 +24,6 @@ class AppLocalizations {
       'guest_nudge_title': 'Save your progress!',
       'guest_nudge_body':
           'Create a free account so your coins and progress survive a phone change or reinstall.',
-      'create_account': 'Create account',
       'google_signin': 'Sign in with Google',
       'google_not_configured': 'Google Sign-In is not configured yet.',
       'wallet': 'Coins & Premium',
@@ -56,7 +55,7 @@ class AppLocalizations {
       'tutor_session_done': 'Session complete!',
       'tutor_terms_used': 'Target words you used',
       'tutor_daily_limit': 'Daily tutor limit reached. Come back tomorrow!',
-      'start_test': 'Test your level',
+      'test_your_level': 'Test your level',
       'placement_result_title': 'Your suggested level',
       'start_at': 'Start at',
       'start_from_a1': 'Start from the beginning (A1)',
@@ -244,7 +243,6 @@ class AppLocalizations {
       'guest_nudge_title': 'احفظ تقدمك!',
       'guest_nudge_body':
           'أنشئ حساباً مجانياً حتى لا تفقد عملاتك وتقدمك عند تغيير الهاتف أو إعادة التثبيت.',
-      'create_account': 'إنشاء حساب',
       'google_signin': 'الدخول عبر Google',
       'google_not_configured': 'تسجيل الدخول عبر Google غير مفعّل بعد.',
       'wallet': 'العملات والاشتراك',
@@ -276,7 +274,7 @@ class AppLocalizations {
       'tutor_session_done': 'انتهت الجلسة!',
       'tutor_terms_used': 'الكلمات المستهدفة التي استخدمتها',
       'tutor_daily_limit': 'وصلت للحد اليومي للمدرس الذكي. عد غداً!',
-      'start_test': 'اختبر مستواك',
+      'test_your_level': 'اختبر مستواك',
       'placement_result_title': 'مستواك المقترح',
       'start_at': 'ابدأ من',
       'start_from_a1': 'ابدأ من البداية (A1)',

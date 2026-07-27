@@ -138,7 +138,7 @@ class ProfileScreen extends ConsumerWidget {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.quiz_rounded),
-                  title: Text(t.t('start_test')),
+                  title: Text(t.t('test_your_level')),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/placement-intro'),
                 ),
