@@ -43,6 +43,23 @@ class AuthRepository {
     return _persistAndParse(res.data as Map<String, dynamic>);
   }
 
+  /// v2 §2.1: automatic guest account — no user input, same JWT mechanism.
+  Future<AppUser> guest({String? country}) async {
+    final res = await _dio.post('/auth/guest', data: {
+      if (country != null && country.isNotEmpty) 'country': country,
+    });
+    return _persistAndParse(res.data as Map<String, dynamic>);
+  }
+
+  /// v2 §6.1: Google ID token → server-side verification. When the caller is
+  /// a guest (token already attached by the interceptor), the backend
+  /// converts the same row in place.
+  Future<AppUser> googleLogin(String idToken) async {
+    final res =
+        await _dio.post('/auth/social/google', data: {'id_token': idToken});
+    return _persistAndParse(res.data as Map<String, dynamic>);
+  }
+
   Future<AppUser> me() async {
     final res = await _dio.get('/auth/me');
     return AppUser.fromJson(res.data as Map<String, dynamic>);

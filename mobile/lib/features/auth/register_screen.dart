@@ -91,12 +91,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               FilledButton(
                 onPressed: state.loading
                     ? null
-                    : () => ref.read(authControllerProvider.notifier).register(
-                          email: _email.text.trim(),
-                          password: _password.text,
-                          fullName: _name.text,
-                          learningGoal: _goal,
-                        ),
+                    : () async {
+                        await ref
+                            .read(authControllerProvider.notifier)
+                            .register(
+                              email: _email.text.trim(),
+                              password: _password.text,
+                              fullName: _name.text,
+                              learningGoal: _goal,
+                            );
+                        if (!context.mounted) return;
+                        // A converting guest stays authenticated throughout,
+                        // so navigate explicitly rather than relying on the
+                        // auth-state redirect (v2 §2.1).
+                        final next = ref.read(authControllerProvider);
+                        if (next.error == null && next.isAuthenticated) {
+                          context.go('/home');
+                        }
+                      },
                 child: state.loading
                     ? const SizedBox(
                         height: 22,

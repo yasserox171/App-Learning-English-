@@ -102,6 +102,14 @@ class _LessonStepsScreenState extends ConsumerState<LessonStepsScreen> {
                       icon: const Icon(Icons.play_arrow_rounded),
                       label: Text(t.t('start_lesson')),
                     ),
+                    const SizedBox(height: 8),
+                    // v2 §3: lesson-themed AI Tutor voice conversation.
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          context.push('/lessons/${widget.lessonId}/tutor'),
+                      icon: const Icon(Icons.record_voice_over_rounded),
+                      label: Text(t.t('talk_with_tutor')),
+                    ),
                   ],
                 ),
               ),

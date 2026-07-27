@@ -23,6 +23,8 @@ import '../../features/profile/settings_screen.dart';
 import '../../features/progress/certificates_screen.dart';
 import '../../features/progress/progress_screen.dart';
 import '../../features/stats/stats_screen.dart';
+import '../../features/tutor/tutor_screen.dart';
+import '../../features/wallet/wallet_screen.dart';
 import '../widgets/home_shell.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -31,12 +33,16 @@ final _rootKey = GlobalKey<NavigatorState>();
 const _publicRoutes = {'/', '/language', '/login', '/register'};
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Re-evaluate redirects when auth state changes (e.g. after login).
-  final authChanged = ValueNotifier<bool>(
-    ref.read(authControllerProvider).isAuthenticated,
+  // Re-evaluate redirects when auth state changes. Guest status is part of
+  // the signal: a guest converting to a registered account stays
+  // authenticated, so tracking isAuthenticated alone would never refresh.
+  String signature(AuthState s) =>
+      '${s.isAuthenticated}:${s.user?.isGuest ?? false}';
+  final authChanged = ValueNotifier<String>(
+    signature(ref.read(authControllerProvider)),
   );
   ref.listen(authControllerProvider, (prev, next) {
-    authChanged.value = next.isAuthenticated;
+    authChanged.value = signature(next);
   });
   ref.onDispose(authChanged.dispose);
 
@@ -45,13 +51,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: authChanged,
     redirect: (context, state) {
-      final authed = ref.read(authControllerProvider).isAuthenticated;
+      final auth = ref.read(authControllerProvider);
+      final authed = auth.isAuthenticated;
+      final isGuest = auth.user?.isGuest == true;
       final loc = state.matchedLocation;
       final isPublic = _publicRoutes.contains(loc);
       // Let the splash/language flow decide on its own.
       if (loc == '/' || loc == '/language') return null;
       if (!authed && !isPublic) return '/login';
-      if (authed && (loc == '/login' || loc == '/register')) return '/home';
+      // Guests must still be able to open login/register — that's how a
+      // guest row gets converted in place (v2 §2.1).
+      if (authed && !isGuest && (loc == '/login' || loc == '/register')) {
+        return '/home';
+      }
       return null;
     },
     routes: [
@@ -106,6 +118,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               int.tryParse(s.uri.queryParameters['step'] ?? '') ?? 0,
           replay: s.uri.queryParameters['replay'] == '1',
         ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/lessons/:id/tutor',
+        builder: (_, s) => TutorScreen(lessonId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/wallet',
+        builder: (_, __) => const WalletScreen(),
       ),
       GoRoute(
         parentNavigatorKey: _rootKey,

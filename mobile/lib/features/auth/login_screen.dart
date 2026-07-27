@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/i18n/app_localizations.dart';
 import '../../core/widgets/app_logo.dart';
 import 'auth_controller.dart';
+import 'google_signin_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _comingSoon(String label) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('$label — soon')));
+  }
+
+  Future<void> _googleSignIn() async {
+    final t = AppLocalizations.of(context);
+    try {
+      final idToken =
+          await ref.read(googleSignInServiceProvider).signIn();
+      if (idToken == null) return; // cancelled
+      await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogleToken(idToken);
+      if (!mounted) return;
+      // Guests converting via Google stay authenticated the whole time, so
+      // the auth redirect won't fire — navigate explicitly.
+      final next = ref.read(authControllerProvider);
+      if (next.error == null && next.isAuthenticated) context.go('/home');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t.t('google_not_configured'))),
+      );
+    }
+  }
+
+  Future<void> _continueAsGuest() async {
+    final ok =
+        await ref.read(authControllerProvider.notifier).ensureSession();
+    if (ok && mounted) context.go('/home');
   }
 
   @override
@@ -122,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: () => _comingSoon(t.t('sign_in_google')),
+                onPressed: _googleSignIn,
                 icon: const Icon(Icons.g_mobiledata, size: 28),
                 label: Text(t.t('sign_in_google')),
               ),
@@ -131,6 +160,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: () => _comingSoon(t.t('sign_in_apple')),
                 icon: const Icon(Icons.apple),
                 label: Text(t.t('sign_in_apple')),
+              ),
+              const SizedBox(height: 10),
+              // v2 §2.1: no forced signup — guests get full free access.
+              TextButton.icon(
+                onPressed: _continueAsGuest,
+                icon: const Icon(Icons.person_outline),
+                label: Text(t.t('continue_guest')),
               ),
               const SizedBox(height: 16),
               Row(

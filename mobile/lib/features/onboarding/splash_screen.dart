@@ -32,8 +32,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context.go('/language');
       return;
     }
-    final authed = ref.read(authControllerProvider).isAuthenticated;
-    context.go(authed ? '/home' : '/login');
+    // v2 §2.1: no forced signup — silently create/reuse a guest session and
+    // land straight on Home. Login stays reachable from the profile screen.
+    final locale = Localizations.maybeLocaleOf(context);
+    final ok = await ref
+        .read(authControllerProvider.notifier)
+        .ensureSession(country: locale?.countryCode?.toLowerCase());
+    if (!mounted) return;
+    context.go(ok ? '/home' : '/login');
   }
 
   @override

@@ -85,6 +85,50 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// v2 §2.1: silent guest bootstrap on first open — no user input required.
+  /// Returns true when a session (existing or fresh guest) is available.
+  Future<bool> ensureSession({String? country}) async {
+    if (state.isAuthenticated) return true;
+    final token = await _ref.read(tokenStorageProvider).access;
+    if (token != null) {
+      try {
+        final user = await _repo.me();
+        state = state.copyWith(user: user);
+        return true;
+      } catch (_) {
+        await _repo.logout();
+      }
+    }
+    try {
+      final user = await _repo.guest(country: country);
+      state = AuthState(user: user);
+      return true;
+    } catch (_) {
+      return false; // offline / server unreachable → fall back to login
+    }
+  }
+
+  Future<void> signInWithGoogleToken(String idToken) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final user = await _repo.googleLogin(idToken);
+      state = AuthState(user: user);
+    } catch (e) {
+      state = AuthState(
+        user: state.user,
+        error: _describeError(e, 'Google sign-in failed'),
+      );
+    }
+  }
+
+  /// Refresh the profile (e.g. after premium activation or conversion).
+  Future<void> refreshProfile() async {
+    try {
+      final user = await _repo.me();
+      state = state.copyWith(user: user);
+    } catch (_) {}
+  }
+
   Future<void> logout() async {
     await _repo.logout();
     state = const AuthState();

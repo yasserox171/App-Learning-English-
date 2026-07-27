@@ -42,6 +42,31 @@ class ProfileScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // v2 §2.1: gentle, non-blocking retention nudge for guests.
+          if (user?.isGuest == true)
+            Card(
+              color: AppTheme.accent.withOpacity(0.12),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('💾 ${t.t('guest_nudge_title')}',
+                        style:
+                            const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    Text(t.t('guest_nudge_body'),
+                        style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: () => context.push('/register'),
+                      child: Text(t.t('create_account')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (user?.isGuest == true) const SizedBox(height: 12),
           Column(
             children: [
               CircleAvatar(
@@ -103,6 +128,21 @@ class ProfileScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
+                ListTile(
+                  leading: const Icon(Icons.savings_rounded,
+                      color: AppTheme.accent),
+                  title: Text(t.t('wallet')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/wallet'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.quiz_rounded),
+                  title: Text(t.t('start_test')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/placement-intro'),
+                ),
+                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.bar_chart_rounded),
                   title: Text(t.t('progress')),

@@ -89,10 +89,22 @@ class NewsSummary {
 }
 
 class NewsSubmitResult {
-  NewsSubmitResult({required this.isCorrect, required this.correctAnswer});
+  NewsSubmitResult({
+    required this.isCorrect,
+    required this.correctAnswer,
+    this.coinsAwarded = 0,
+    this.bonusAwarded = 0,
+    this.capReached = false,
+    this.balance = 0,
+  });
 
   final bool isCorrect;
   final String correctAnswer;
+  // v2 §2.3 coins economy
+  final int coinsAwarded;
+  final int bonusAwarded;
+  final bool capReached;
+  final int balance;
 }
 
 class NewsRepository {
@@ -142,7 +154,23 @@ class NewsRepository {
     return NewsSubmitResult(
       isCorrect: data['is_correct'] == true,
       correctAnswer: (data['correct_answer'] ?? '').toString(),
+      coinsAwarded: (data['coins_awarded'] ?? 0) as int,
+      bonusAwarded: (data['bonus_awarded'] ?? 0) as int,
+      capReached: data['cap_reached'] == true,
+      balance: (data['balance'] ?? 0) as int,
     );
+  }
+
+  /// Personalized feed (v2 §2.2): interests + level + country/global.
+  Future<List<NewsSummary>> feed() async {
+    final res = await _dio.get('/news/feed');
+    final data = res.data;
+    final list = (data is Map && data.containsKey('results'))
+        ? data['results'] as List
+        : data as List;
+    return [
+      for (final e in list) NewsSummary.fromJson(e as Map<String, dynamic>),
+    ];
   }
 }
 
@@ -154,8 +182,10 @@ final dailyNewsProvider = FutureProvider<NewsArticle?>(
   (ref) => ref.read(newsRepositoryProvider).daily(),
 );
 
+/// Home list now reads the personalized feed (v2 §2.2); the server falls
+/// back to the general archive when the filters would return nothing.
 final newsArchiveProvider = FutureProvider<List<NewsSummary>>(
-  (ref) => ref.read(newsRepositoryProvider).archive(),
+  (ref) => ref.read(newsRepositoryProvider).feed(),
 );
 
 final newsArticleProvider = FutureProvider.family<NewsArticle, String>(

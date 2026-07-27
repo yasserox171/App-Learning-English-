@@ -46,6 +46,8 @@ dependencies:
   # Requires core library desugaring — enabled in android/app/build.gradle.kts.
   flutter_local_notifications: ^19.0.0
   timezone: ^0.10.0
+  # Google Sign-In (v2 §6.1) — ID token verified server-side via google-auth.
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

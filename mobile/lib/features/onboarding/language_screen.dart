@@ -21,8 +21,11 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     ref.read(localeProvider.notifier).setLocale(Locale(_code));
     await ref.read(settingsStorageProvider).setOnboarded();
     if (!mounted) return;
-    final authed = ref.read(authControllerProvider).isAuthenticated;
-    context.go(authed ? '/home' : '/login');
+    // v2 §2.1: first open flows straight into a guest session — no signup.
+    final ok =
+        await ref.read(authControllerProvider.notifier).ensureSession();
+    if (!mounted) return;
+    context.go(ok ? '/home' : '/login');
   }
 
   @override

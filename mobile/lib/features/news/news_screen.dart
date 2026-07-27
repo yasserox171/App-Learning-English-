@@ -231,6 +231,22 @@ class _NewsExerciseCardState extends ConsumerState<_NewsExerciseCard> {
       final feedback = ref.read(feedbackServiceProvider);
       if (result.isCorrect) {
         feedback.correct();
+        // v2 §2.3: show earned coins (and the friendly daily-cap message).
+        final earned = result.coinsAwarded + result.bonusAwarded;
+        final t = AppLocalizations.of(context);
+        if (earned > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(result.bonusAwarded > 0
+                ? '🪙 +$earned ${t.t('coins_plus')} (${t.t('completion_bonus')}!)'
+                : '🪙 +$earned ${t.t('coins_plus')}'),
+          ));
+        } else if (result.capReached) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(t.t('daily_cap_reached')),
+          ));
+        }
         Future.delayed(const Duration(milliseconds: 900), () {
           if (mounted) widget.onDone(true);
         });
