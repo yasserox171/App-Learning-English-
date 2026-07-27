@@ -1,0 +1,455 @@
+word,cefr_level,translation_ar
+about,A1,حول
+after,A1,بعد
+again,A1,مرة أخرى
+airport,A1,مطار
+always,A1,دائماً
+animal,A1,حيوان
+answer,A1,إجابة
+apple,A1,تفاحة
+bag,A1,حقيبة
+banana,A1,موزة
+beautiful,A1,جميل
+because,A1,لأن
+bed,A1,سرير
+big,A1,كبير
+book,A1,كتاب
+boy,A1,ولد
+bread,A1,خبز
+breakfast,A1,فطور
+brother,A1,أخ
+car,A1,سيارة
+cat,A1,قطة
+chair,A1,كرسي
+city,A1,مدينة
+class,A1,صف
+clean,A1,نظيف
+coffee,A1,قهوة
+cold,A1,بارد
+color,A1,لون
+come,A1,يأتي
+day,A1,يوم
+doctor,A1,طبيب
+dog,A1,كلب
+door,A1,باب
+drink,A1,يشرب
+eat,A1,يأكل
+family,A1,عائلة
+father,A1,أب
+food,A1,طعام
+friend,A1,صديق
+girl,A1,فتاة
+good,A1,جيد
+happy,A1,سعيد
+house,A1,منزل
+know,A1,يعرف
+learn,A1,يتعلم
+like,A1,يحب
+listen,A1,يستمع
+live,A1,يعيش
+love,A1,يحب
+make,A1,يصنع
+morning,A1,صباح
+mother,A1,أم
+name,A1,اسم
+new,A1,جديد
+night,A1,ليل
+open,A1,يفتح
+people,A1,ناس
+play,A1,يلعب
+read,A1,يقرأ
+school,A1,مدرسة
+see,A1,يرى
+small,A1,صغير
+speak,A1,يتحدث
+student,A1,طالب
+teacher,A1,معلم
+time,A1,وقت
+today,A1,اليوم
+water,A1,ماء
+week,A1,أسبوع
+work,A1,عمل
+write,A1,يكتب
+year,A1,سنة
+ability,A2,قدرة
+accept,A2,يقبل
+accident,A2,حادث
+advice,A2,نصيحة
+afraid,A2,خائف
+agree,A2,يوافق
+almost,A2,تقريباً
+alone,A2,وحيد
+arrive,A2,يصل
+attention,A2,انتباه
+available,A2,متاح
+bank,A2,بنك
+believe,A2,يصدق
+borrow,A2,يستعير
+break,A2,يكسر
+bridge,A2,جسر
+busy,A2,مشغول
+carry,A2,يحمل
+celebrate,A2,يحتفل
+choose,A2,يختار
+climb,A2,يتسلق
+comfortable,A2,مريح
+compare,A2,يقارن
+complete,A2,يكمل
+continue,A2,يواصل
+dangerous,A2,خطير
+decide,A2,يقرر
+delicious,A2,لذيذ
+describe,A2,يصف
+different,A2,مختلف
+difficult,A2,صعب
+discover,A2,يكتشف
+early,A2,مبكر
+environment,A2,بيئة
+excited,A2,متحمس
+expensive,A2,غالي الثمن
+experience,A2,تجربة
+explain,A2,يشرح
+famous,A2,مشهور
+fast,A2,سريع
+finish,A2,ينهي
+follow,A2,يتبع
+foreign,A2,أجنبي
+forget,A2,ينسى
+future,A2,مستقبل
+government,A2,حكومة
+guest,A2,ضيف
+health,A2,صحة
+history,A2,تاريخ
+holiday,A2,عطلة
+hospital,A2,مستشفى
+important,A2,مهم
+improve,A2,يحسّن
+information,A2,معلومات
+interesting,A2,مثير للاهتمام
+invite,A2,يدعو
+journey,A2,رحلة
+language,A2,لغة
+luggage,A2,أمتعة
+market,A2,سوق
+message,A2,رسالة
+mountain,A2,جبل
+museum,A2,متحف
+nature,A2,طبيعة
+neighbor,A2,جار
+newspaper,A2,جريدة
+passenger,A2,راكب
+passport,A2,جواز سفر
+patient,A2,صبور
+possible,A2,ممكن
+practice,A2,يتمرن
+prepare,A2,يستعد
+present,A2,هدية
+promise,A2,وعد
+quickly,A2,بسرعة
+receive,A2,يستقبل
+remember,A2,يتذكر
+repeat,A2,يكرر
+restaurant,A2,مطعم
+return,A2,يعود
+save,A2,يوفر
+scared,A2,خائف
+station,A2,محطة
+stay,A2,يبقى
+suddenly,A2,فجأة
+surprise,A2,مفاجأة
+tired,A2,متعب
+tourist,A2,سائح
+travel,A2,يسافر
+understand,A2,يفهم
+useful,A2,مفيد
+village,A2,قرية
+visit,A2,يزور
+weather,A2,طقس
+wonderful,A2,رائع
+achieve,B1,يحقق
+admire,B1,يعجب بـ
+advantage,B1,ميزة
+ambition,B1,طموح
+analyze,B1,يحلل
+ancient,B1,قديم
+announce,B1,يعلن
+anxious,B1,قلق
+apologize,B1,يعتذر
+appearance,B1,مظهر
+application,B1,طلب / تطبيق
+appreciate,B1,يقدّر
+approach,B1,نهج / يقترب
+argument,B1,جدال
+atmosphere,B1,أجواء
+attitude,B1,موقف
+audience,B1,جمهور
+average,B1,متوسط
+avoid,B1,يتجنب
+behave,B1,يتصرف
+benefit,B1,فائدة
+campaign,B1,حملة
+challenge,B1,تحدي
+character,B1,شخصية
+charity,B1,جمعية خيرية
+colleague,B1,زميل
+communicate,B1,يتواصل
+community,B1,مجتمع
+confidence,B1,ثقة
+convince,B1,يقنع
+culture,B1,ثقافة
+curious,B1,فضولي
+current,B1,حالي
+customer,B1,زبون
+develop,B1,يطور
+disappointed,B1,خائب الأمل
+economy,B1,اقتصاد
+educate,B1,يعلّم
+effect,B1,تأثير
+efficient,B1,فعال
+effort,B1,جهد
+embarrassed,B1,محرج
+emergency,B1,طوارئ
+employee,B1,موظف
+encourage,B1,يشجع
+enormous,B1,ضخم
+equipment,B1,معدات
+essential,B1,أساسي
+establish,B1,يؤسس
+evidence,B1,دليل
+examine,B1,يفحص
+expand,B1,يتوسع
+expect,B1,يتوقع
+generation,B1,جيل
+genuine,B1,أصيل / حقيقي
+gradually,B1,تدريجياً
+identify,B1,يحدد
+immediately,B1,فوراً
+impress,B1,يُبهر
+increase,B1,يزيد
+independent,B1,مستقل
+influence,B1,تأثير
+injury,B1,إصابة
+investigate,B1,يحقق في
+knowledge,B1,معرفة
+manage,B1,يدير
+mention,B1,يذكر
+occasion,B1,مناسبة
+opportunity,B1,فرصة
+organize,B1,ينظم
+particular,B1,محدد
+persuade,B1,يقنع
+prefer,B1,يفضل
+pressure,B1,ضغط
+prevent,B1,يمنع
+process,B1,عملية
+produce,B1,ينتج
+professional,B1,محترف
+progress,B1,تقدم
+protect,B1,يحمي
+provide,B1,يوفر
+purpose,B1,هدف
+quality,B1,جودة
+recognize,B1,يتعرف على
+recommend,B1,يوصي بـ
+reduce,B1,يقلل
+relationship,B1,علاقة
+require,B1,يتطلب
+research,B1,بحث
+responsible,B1,مسؤول
+satisfied,B1,راضٍ
+situation,B1,وضع
+society,B1,مجتمع
+solution,B1,حل
+succeed,B1,ينجح
+suggest,B1,يقترح
+support,B1,يدعم
+temperature,B1,درجة حرارة
+tradition,B1,تقليد
+volunteer,B1,متطوع
+abandon,B2,يهجر / يتخلى عن
+absorb,B2,يمتص
+abstract,B2,مجرد
+accompany,B2,يرافق
+accumulate,B2,يراكم
+acknowledge,B2,يعترف بـ
+acquire,B2,يكتسب
+adequate,B2,كافٍ
+adjust,B2,يعدّل
+advocate,B2,يدافع عن
+allocate,B2,يخصص
+ambiguous,B2,غامض
+anticipate,B2,يتوقع
+apparent,B2,واضح / ظاهري
+arbitrary,B2,اعتباطي
+assess,B2,يقيّم
+assume,B2,يفترض
+assure,B2,يؤكد
+attain,B2,يبلغ / يحقق
+attribute,B2,يعزو / سمة
+bias,B2,تحيز
+capacity,B2,سعة / قدرة
+coherent,B2,متماسك
+coincide,B2,يتزامن
+collapse,B2,ينهار
+compensate,B2,يعوض
+comprehensive,B2,شامل
+comprise,B2,يتألف من
+conceive,B2,يتصور
+concern,B2,قلق / شأن
+conclude,B2,يستنتج
+consecutive,B2,متتالٍ
+consensus,B2,إجماع
+considerable,B2,كبير / معتبر
+constitute,B2,يشكّل
+constraint,B2,قيد
+contradict,B2,يناقض
+controversy,B2,جدل
+convey,B2,ينقل / يعبّر عن
+crucial,B2,حاسم
+cultivate,B2,يزرع / ينمّي
+deliberate,B2,متعمد
+demonstrate,B2,يُظهر / يبرهن
+derive,B2,يستمد
+deteriorate,B2,يتدهور
+devote,B2,يكرّس
+dilemma,B2,معضلة
+diminish,B2,يتضاءل
+distinct,B2,مميز / منفصل
+distribute,B2,يوزع
+dominate,B2,يهيمن
+elaborate,B2,مفصّل / يتوسع
+eliminate,B2,يقضي على
+emerge,B2,يظهر / يبرز
+emphasize,B2,يؤكد على
+enhance,B2,يعزز
+evaluate,B2,يقيّم
+evident,B2,واضح
+exceed,B2,يتجاوز
+explicit,B2,صريح
+exploit,B2,يستغل
+facilitate,B2,يسهّل
+fluctuate,B2,يتذبذب
+fundamental,B2,جوهري
+generate,B2,يولّد
+hypothesis,B2,فرضية
+implement,B2,ينفذ
+implication,B2,تبعة / دلالة
+incentive,B2,حافز
+inevitable,B2,حتمي
+infrastructure,B2,بنية تحتية
+inherent,B2,متأصل
+initiative,B2,مبادرة
+integrate,B2,يدمج
+interpret,B2,يفسر
+intervene,B2,يتدخل
+justify,B2,يبرر
+legitimate,B2,شرعي
+maintain,B2,يحافظ على
+negotiate,B2,يفاوض
+notion,B2,فكرة / مفهوم
+objective,B2,هدف / موضوعي
+obtain,B2,يحصل على
+perceive,B2,يدرك
+perspective,B2,منظور
+phenomenon,B2,ظاهرة
+predominant,B2,سائد
+preliminary,B2,تمهيدي
+presumably,B2,على الأرجح
+prohibit,B2,يحظر
+prominent,B2,بارز
+proportion,B2,نسبة
+pursue,B2,يسعى وراء
+reinforce,B2,يعزز
+reluctant,B2,متردد
+restrict,B2,يقيّد
+retain,B2,يحتفظ بـ
+scope,B2,نطاق
+subsequent,B2,لاحق
+substantial,B2,كبير / جوهري
+sufficient,B2,كافٍ
+sustain,B2,يديم
+transition,B2,انتقال
+undergo,B2,يخضع لـ
+underlying,B2,كامن
+undermine,B2,يقوّض
+vulnerable,B2,هش / معرض للخطر
+aberration,C1,شذوذ
+abolish,C1,يلغي
+adverse,C1,معاكس / ضار
+aesthetic,C1,جمالي
+aggregate,C1,إجمالي
+alleviate,C1,يخفف
+altruism,C1,إيثار
+ameliorate,C1,يحسّن
+analogous,C1,مماثل
+apprehension,C1,توجس
+articulate,C1,يعبّر بوضوح
+ascertain,C1,يتحقق من
+augment,C1,يزيد / يعزز
+autonomous,C1,مستقل ذاتياً
+benevolent,C1,خيّر / كريم
+coercion,C1,إكراه
+cognizant,C1,مدرك
+commensurate,C1,متناسب
+conjecture,C1,تخمين
+connotation,C1,دلالة ضمنية
+contentious,C1,مثير للخلاف
+culminate,C1,يبلغ الذروة
+cursory,C1,سطحي / عابر
+deference,C1,احترام / إذعان
+detrimental,C1,مضر
+dichotomy,C1,انقسام ثنائي
+discrepancy,C1,تباين
+disparate,C1,متباين
+disseminate,C1,ينشر
+elucidate,C1,يوضح
+empirical,C1,تجريبي
+endeavor,C1,مسعى
+ephemeral,C1,عابر / زائل
+equivocal,C1,ملتبس
+exacerbate,C1,يفاقم
+exemplify,C1,يجسد
+exhaustive,C1,شامل / مستفيض
+expedite,C1,يعجّل
+extrapolate,C1,يستقرئ
+feasible,C1,ممكن التنفيذ
+formidable,C1,هائل / مهيب
+idiosyncratic,C1,فردي الطابع
+impede,C1,يعرقل
+imperative,C1,ضروري / حتمي
+inadvertently,C1,عن غير قصد
+incessant,C1,متواصل
+indigenous,C1,أصلي / محلي
+inherent,C1,متأصل
+insinuate,C1,يلمّح
+intrinsic,C1,جوهري
+juxtapose,C1,يقارن بالتجاور
+meticulous,C1,دقيق
+mitigate,C1,يخفف
+notwithstanding,C1,على الرغم من
+nuance,C1,فارق دقيق
+obsolete,C1,عتيق / مهجور
+paradigm,C1,نموذج فكري
+pertinent,C1,ذو صلة
+pervasive,C1,منتشر
+plausible,C1,معقول
+precarious,C1,غير مستقر
+precedent,C1,سابقة
+predicament,C1,مأزق
+proficient,C1,متمكن
+proliferate,C1,يتكاثر
+quintessential,C1,مثالي / جوهري
+ramification,C1,تداعيات
+reconcile,C1,يوفّق بين
+redundant,C1,زائد عن الحاجة
+resilient,C1,مرن / صامد
+rhetoric,C1,بلاغة / خطاب
+scrutinize,C1,يفحص بدقة
+stringent,C1,صارم
+substantiate,C1,يثبت بالأدلة
+tantamount,C1,بمثابة
+tenuous,C1,واهٍ
+ubiquitous,C1,موجود في كل مكان
+unprecedented,C1,غير مسبوق
+viable,C1,قابل للاستمرار
+volatile,C1,متقلب

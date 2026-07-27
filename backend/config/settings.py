@@ -68,6 +68,9 @@ LOCAL_APPS = [
     "apps.exercises",
     "apps.progress",
     "apps.news",
+    "apps.billing",
+    "apps.tutor",
+    "apps.adminpanel",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -205,6 +208,49 @@ VIDEO_PLAYBACK_BASE_URL = env(
     "VIDEO_PLAYBACK_BASE_URL", default="http://localhost:8000/media/videos/"
 )
 
-# Social auth (Phase 2 stubs)
-GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+# --------------------------------------------------------------------------- #
+# Social auth (v2 §6 — verified server-side via google-auth)
+# --------------------------------------------------------------------------- #
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")          # Android OAuth client
+GOOGLE_WEB_CLIENT_ID = env("GOOGLE_WEB_CLIENT_ID", default="")  # Web OAuth client
 APPLE_CLIENT_ID = env("APPLE_CLIENT_ID", default="")
+
+# --------------------------------------------------------------------------- #
+# Coins & premium economy (v2 §2.3) — spec defaults, adjustable here/.env
+# --------------------------------------------------------------------------- #
+COINS_PER_CORRECT_ANSWER = env.int("COINS_PER_CORRECT_ANSWER", default=5)
+COINS_COMPLETION_BONUS = env.int("COINS_COMPLETION_BONUS", default=10)
+COINS_DAILY_CAP = env.int("COINS_DAILY_CAP", default=60)
+
+# --------------------------------------------------------------------------- #
+# AI providers (v2 §2.2 pipeline + §3 AI Tutor)
+# --------------------------------------------------------------------------- #
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+CLAUDE_MODEL = env("CLAUDE_MODEL", default="claude-opus-5")
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")        # Whisper STT
+GOOGLE_TTS_API_KEY = env("GOOGLE_TTS_API_KEY", default="")
+GOOGLE_TTS_VOICE = env("GOOGLE_TTS_VOICE", default="en-US-Neural2-F")
+
+# AI Tutor shared daily caps (v2 §3.5) — tier difference is config-only.
+TUTOR_FREE_DAILY_SESSIONS = env.int("TUTOR_FREE_DAILY_SESSIONS", default=2)
+TUTOR_PREMIUM_DAILY_SESSIONS = env.int("TUTOR_PREMIUM_DAILY_SESSIONS", default=10)
+TUTOR_MAX_EXCHANGES = env.int("TUTOR_MAX_EXCHANGES", default=6)
+
+# --------------------------------------------------------------------------- #
+# Payments (v2 §7)
+# --------------------------------------------------------------------------- #
+ANDROID_PACKAGE_NAME = env("ANDROID_PACKAGE_NAME", default="")
+GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = env(
+    "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", default=""
+)
+PLAY_PRODUCT_MONTHLY = env("PLAY_PRODUCT_MONTHLY", default="premium_monthly")
+PLAY_PRODUCT_ANNUAL = env("PLAY_PRODUCT_ANNUAL", default="premium_annual")
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_PRICE_MONTHLY = env("STRIPE_PRICE_MONTHLY", default="")
+STRIPE_PRICE_ANNUAL = env("STRIPE_PRICE_ANNUAL", default="")
+CMI_MERCHANT_ID = env("CMI_MERCHANT_ID", default="")
+CMI_STORE_KEY = env("CMI_STORE_KEY", default="")
+CMI_GATEWAY_URL = env(
+    "CMI_GATEWAY_URL", default="https://payment.cmi.co.ma/fim/est3Dgate"
+)

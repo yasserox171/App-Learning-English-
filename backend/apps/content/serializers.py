@@ -97,16 +97,33 @@ class LessonComponentSerializer(serializers.ModelSerializer):
 
 
 class LessonDetailSerializer(serializers.ModelSerializer):
-    """Full lesson with ordered components (master prompt §6)."""
+    """Full lesson with ordered components (master prompt §6) and word
+    annotations for tap-to-reveal selective translation (v2 §1.1)."""
 
     components = serializers.SerializerMethodField()
+    annotations = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
-        fields = ("id", "unit", "title", "order", "description", "components")
+        fields = ("id", "unit", "title", "order", "description",
+                  "components", "annotations")
 
     def get_components(self, obj):
         components = obj.components.all().order_by("order")
         return LessonComponentSerializer(
             components, many=True, context=self.context
         ).data
+
+    def get_annotations(self, obj):
+        # Only reviewed annotations reach learners — flagged ones stay hidden
+        # until the LLM/human pass resolves them.
+        return [
+            {
+                "word": a.word,
+                "translation_ar": a.translation_ar,
+                "cefr_level": a.cefr_level,
+                "kind": a.kind,
+            }
+            for a in obj.word_annotations.filter(needs_review=False)
+            if a.translation_ar
+        ]

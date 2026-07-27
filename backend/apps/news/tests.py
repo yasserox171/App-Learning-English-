@@ -135,3 +135,132 @@ def test_fetch_news_demo_creates_stories_and_prunes(auth_client, db):
 def test_fetch_news_demo_respects_count(db):
     call_command("fetch_news", "--demo", "--count", "1")
     assert NewsArticle.objects.count() == 1
+
+
+@pytest.fixture
+def article(db):
+    """Published article with 3 gradable questions (one per template)."""
+    art = _article(title_en="Economy test story")
+    NewsExercise.objects.create(
+        article=art, template="multiple_choice", order=0,
+        content={"question": "Q1?", "options": ["a", "b", "c"],
+                 "correct_index": 1},
+    )
+    NewsExercise.objects.create(
+        article=art, template="true_false", order=1,
+        content={"statement": "S.", "answer": True},
+    )
+    NewsExercise.objects.create(
+        article=art, template="fill_blank", order=2,
+        content={"sentence": "I ___ here.", "answer": "am"},
+    )
+    return art
+
+
+# =========================================================================== #
+# v2: coins economy on news answers (§2.3)
+# =========================================================================== #
+@pytest.fixture
+def economy_user(db):
+    from apps.users.models import User
+
+    return User.objects.create_user(email="econ@test.com", password="pass12345")
+
+
+@pytest.fixture
+def econ_client(economy_user):
+    from rest_framework.test import APIClient
+
+    c = APIClient()
+    c.force_authenticate(economy_user)
+    return c
+
+
+def _submit(client, article, exercise, payload):
+    from django.urls import reverse
+
+    return client.post(
+        reverse("v1:news-exercise-submit", args=[article.id, exercise.id]),
+        payload,
+        format="json",
+    )
+
+
+def test_correct_answer_awards_coins_once(econ_client, economy_user, article):
+    ex = article.exercises.get(template="multiple_choice")
+    correct = {"selected_index": ex.content["correct_index"]}
+
+    resp = _submit(econ_client, article, ex, correct)
+    assert resp.status_code == 200
+    assert resp.data["is_correct"] is True
+    assert resp.data["coins_awarded"] == 5
+
+    # Farming the same question again earns nothing (§2.3 anti-abuse).
+    resp = _submit(econ_client, article, ex, correct)
+    assert resp.data["coins_awarded"] == 0
+
+
+def test_wrong_answer_earns_nothing_then_first_correct_pays(
+    econ_client, economy_user, article
+):
+    ex = article.exercises.get(template="true_false")
+    wrong = {"answer": not ex.content["answer"]}
+    right = {"answer": ex.content["answer"]}
+
+    resp = _submit(econ_client, article, ex, wrong)
+    assert resp.data["is_correct"] is False
+    assert resp.data["coins_awarded"] == 0
+    assert "correct_answer" in resp.data  # reveal after wrong attempt
+
+    resp = _submit(econ_client, article, ex, right)
+    assert resp.data["coins_awarded"] == 5
+
+
+def test_completion_bonus_when_all_correct(econ_client, economy_user, article):
+    from apps.billing import services as billing
+
+    total_bonus = 0
+    for ex in article.exercises.all():
+        if ex.template == "multiple_choice":
+            payload = {"selected_index": ex.content["correct_index"]}
+        elif ex.template == "true_false":
+            payload = {"answer": ex.content["answer"]}
+        else:
+            payload = {"answer": ex.content["answer"]}
+        resp = _submit(econ_client, article, ex, payload)
+        total_bonus += resp.data.get("bonus_awarded", 0)
+
+    assert total_bonus == billing.COMPLETION_BONUS
+    # 3 questions × 5 + bonus
+    assert billing.balance(economy_user) == 15 + billing.COMPLETION_BONUS
+
+
+def test_personalized_feed_filters(db, economy_user):
+    from django.utils import timezone
+
+    from apps.news.models import Category, NewsArticle
+    from apps.news.services import personalized_feed
+
+    sports = Category.objects.create(code="sports", name_en="Sports")
+    tech = Category.objects.create(code="tech", name_en="Tech")
+    economy_user.interests.set([sports])
+    economy_user.country = "ma"
+    economy_user.save()
+
+    match = NewsArticle.objects.create(
+        title_en="Sports A1 global", content_short="x", category=sports,
+        difficulty="A1", is_global=True, country="us",
+    )
+    NewsArticle.objects.create(
+        title_en="Tech A1 local-elsewhere", content_short="x", category=tech,
+        difficulty="A1", is_global=False, country="eg",
+    )
+    draft = NewsArticle.objects.create(
+        title_en="Sports A1 draft", content_short="x", category=sports,
+        difficulty="A1", is_global=True, status=NewsArticle.Status.DRAFT,
+    )
+
+    titles = [a.title_en for a in personalized_feed(economy_user)]
+    assert match.title_en in titles
+    assert "Tech A1 local-elsewhere" not in titles  # wrong interest + country
+    assert draft.title_en not in titles  # drafts never reach the feed

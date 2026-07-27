@@ -16,6 +16,8 @@ from .views import (
     CertificatePdfView,
     LessonPhaseView,
     LessonProgressView,
+    PlacementAnswerView,
+    PlacementStartView,
     PlacementSubmitView,
     PlacementTestView,
     ProgressOverviewView,
@@ -25,7 +27,10 @@ from .views import (
 )
 
 urlpatterns = [
-    # Placement
+    # Placement — adaptive v2 flow (optional, "Test your level" any time)
+    path("placement/start", PlacementStartView.as_view(), name="placement-start"),
+    path("placement/answer", PlacementAnswerView.as_view(), name="placement-answer"),
+    # Placement — legacy single-shot flow (kept for old app builds)
     path("placement/test", PlacementTestView.as_view(), name="placement-test"),
     path("placement/submit", PlacementSubmitView.as_view(), name="placement-submit"),
     # Progress

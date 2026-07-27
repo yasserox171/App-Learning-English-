@@ -5,12 +5,14 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     AppleLoginView,
     GoogleLoginView,
+    GuestView,
     LoginView,
     MeView,
     RegisterView,
 )
 
 urlpatterns = [
+    path("guest", GuestView.as_view(), name="guest"),
     path("register", RegisterView.as_view(), name="register"),
     path("login", LoginView.as_view(), name="login"),
     path("refresh", TokenRefreshView.as_view(), name="refresh"),

@@ -7,14 +7,33 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    interests = serializers.SlugRelatedField(
+        slug_field="code", many=True, read_only=True
+    )
+
+    # Write interests as a list of category codes: {"interest_codes": ["sports"]}
+    interest_codes = serializers.ListField(
+        child=serializers.SlugField(), write_only=True, required=False
+    )
+
     class Meta:
         model = User
         fields = (
             "id", "email", "full_name", "role",
             "native_language", "learning_goal", "app_language",
+            "is_guest", "country", "interests", "interest_codes",
             "is_active", "created_at",
         )
-        read_only_fields = ("id", "role", "is_active", "created_at")
+        read_only_fields = ("id", "role", "is_guest", "is_active", "created_at")
+
+    def update(self, instance, validated_data):
+        codes = validated_data.pop("interest_codes", None)
+        instance = super().update(instance, validated_data)
+        if codes is not None:
+            from apps.news.models import Category
+
+            instance.interests.set(Category.objects.filter(code__in=codes))
+        return instance
 
 
 class RegisterSerializer(serializers.ModelSerializer):

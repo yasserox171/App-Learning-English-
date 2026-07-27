@@ -54,6 +54,50 @@ class PlacementSubmitView(APIView):
         )
 
 
+# --- Adaptive placement (v2 §1.2) ------------------------------------------ #
+class PlacementStartView(APIView):
+    """POST /placement/start — begin an adaptive session (optional, any time)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from . import adaptive
+
+        try:
+            return Response(adaptive.start_session(request.user),
+                            status=status.HTTP_201_CREATED)
+        except adaptive.PlacementError as exc:
+            return Response({"detail": str(exc)},
+                            status=status.HTTP_409_CONFLICT)
+
+
+class PlacementAnswerView(APIView):
+    """POST /placement/answer {"session_id": ..., "answers": {qid: index}}."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from . import adaptive
+        from .models import PlacementSession
+
+        session = get_object_or_404(
+            PlacementSession,
+            pk=request.data.get("session_id"),
+            user=request.user,
+        )
+        answers = request.data.get("answers")
+        if not isinstance(answers, dict):
+            return Response(
+                {"detail": "answers must be an object of {question_id: index}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            return Response(adaptive.submit_round(session, answers))
+        except adaptive.PlacementError as exc:
+            return Response({"detail": str(exc)},
+                            status=status.HTTP_409_CONFLICT)
+
+
 # --- Progress -------------------------------------------------------------- #
 class ProgressOverviewView(APIView):
     permission_classes = [permissions.IsAuthenticated]

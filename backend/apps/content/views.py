@@ -39,7 +39,9 @@ class UnitLessonsView(APIView):
 class LessonDetailView(generics.RetrieveAPIView):
     serializer_class = LessonDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Lesson.objects.prefetch_related(
+    queryset = Lesson.objects.filter(
+        status=Lesson.Status.PUBLISHED
+    ).prefetch_related(
         "components__vocabulary_items",
         "components__exercises__template",
         "components__video",

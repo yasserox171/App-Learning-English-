@@ -131,7 +131,80 @@ class Command(BaseCommand):
         templates = self._seed_templates()
         self._seed_users()
         self._seed_sample_lesson(templates)
+        self._seed_categories()
+        self._seed_placement_bank()
+        self._seed_admin_users()
+        self._seed_wordlist()
         self.stdout.write(self.style.SUCCESS("Seed complete."))
+
+    # ----------------------------------------------------------------- #
+    # v2 expansion seeds
+    # ----------------------------------------------------------------- #
+    def _seed_categories(self):
+        """Interest categories (v2 §2.1) — the default set is auto-assigned
+        to new guest accounts."""
+        from apps.news.models import Category
+
+        categories = [
+            ("general", "General News", "أخبار عامة", True, 1),
+            ("culture", "Culture", "ثقافة", True, 2),
+            ("sports", "Sports", "رياضة", True, 3),
+            ("technology", "Technology", "تكنولوجيا", False, 4),
+            ("science", "Science", "علوم", False, 5),
+            ("business", "Business", "أعمال", False, 6),
+            ("health", "Health", "صحة", False, 7),
+            ("travel", "Travel", "سفر", False, 8),
+        ]
+        for code, name_en, name_ar, is_default, order in categories:
+            Category.objects.update_or_create(
+                code=code,
+                defaults={"name_en": name_en, "name_ar": name_ar,
+                          "is_default": is_default, "order": order},
+            )
+        self.stdout.write(f"Categories: {Category.objects.count()}")
+
+    def _seed_placement_bank(self):
+        """Independent adaptive placement bank (v2 §1.2)."""
+        from apps.progress.models import PlacementQuestion
+        from apps.progress.placement_bank import QUESTIONS
+
+        created = 0
+        for level, qtype, passage, question, options, correct in QUESTIONS:
+            _, was_created = PlacementQuestion.objects.get_or_create(
+                level=level, question=question,
+                defaults={"qtype": qtype, "passage": passage,
+                          "options": options, "correct_index": correct},
+            )
+            created += was_created
+        self.stdout.write(
+            f"Placement bank: {PlacementQuestion.objects.count()} "
+            f"questions ({created} new)"
+        )
+
+    def _seed_admin_users(self):
+        """Demo panel operator (v2 §4.2) — change the password in production."""
+        from apps.adminpanel.models import AdminUser
+
+        if not AdminUser.objects.filter(email="admin@focus.test").exists():
+            admin = AdminUser(
+                email="admin@focus.test",
+                full_name="Panel Super Admin",
+                role=AdminUser.Role.SUPER,
+            )
+            admin.set_password("adminpanel12345")
+            admin.save()
+        self.stdout.write(f"Admin users: {AdminUser.objects.count()}")
+
+    def _seed_wordlist(self):
+        """CEFR word list for selective translation (v2 §1.1)."""
+        from django.core.management import call_command
+
+        from apps.content.models import WordLevel
+
+        if WordLevel.objects.count() < 100:
+            call_command("load_wordlist")
+        else:
+            self.stdout.write(f"Word list: {WordLevel.objects.count()} words")
 
     # ----------------------------------------------------------------- #
     def _seed_levels(self):

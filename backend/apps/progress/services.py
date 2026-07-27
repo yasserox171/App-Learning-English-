@@ -40,7 +40,9 @@ PHASE_OF = {
 def compute_level_progress(user, level: Level) -> dict:
     """Aggregate a user's progress across all lessons in a level."""
     lesson_ids = list(
-        Lesson.objects.filter(unit__level=level).values_list("id", flat=True)
+        Lesson.objects.filter(
+            unit__level=level, status=Lesson.Status.PUBLISHED
+        ).values_list("id", flat=True)
     )
     total = len(lesson_ids)
 
@@ -246,7 +248,7 @@ def units_overview(user, level_id) -> list:
 def lessons_overview(user, unit_id) -> list:
     """Lessons of a unit with per-lesson status/percent and sequential lock."""
     lessons = list(
-        Lesson.objects.filter(unit_id=unit_id)
+        Lesson.objects.filter(unit_id=unit_id, status=Lesson.Status.PUBLISHED)
         .order_by("order")
         .prefetch_related(
             "components__vocabulary_items",

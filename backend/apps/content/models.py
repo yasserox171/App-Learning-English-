@@ -51,12 +51,22 @@ class Unit(BaseModel):
 
 
 class Lesson(BaseModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft (pending review)"
+        PUBLISHED = "published", "Published"
+        REJECTED = "rejected", "Rejected"
+
     unit = models.ForeignKey(
         Unit, on_delete=models.CASCADE, related_name="lessons"
     )
     title = models.CharField(max_length=255)
     order = models.PositiveIntegerField(default=0)
     description = models.TextField(blank=True)
+    # v2 §5: API-imported content lands as `draft` until an admin approves it
+    # in the review queue. Existing/manual content defaults to published.
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.PUBLISHED
+    )
 
     class Meta:
         db_table = "lessons"
@@ -151,3 +161,57 @@ class TextBlock(BaseModel):
 
     def __str__(self):
         return f"TextBlock for {self.component_id}"
+
+
+# --------------------------------------------------------------------------- #
+# Selective translation (v2 §1.1)
+# --------------------------------------------------------------------------- #
+class WordLevel(BaseModel):
+    """Static CEFR word classification lookup (Oxford-3000/5000-style list).
+
+    Loaded via `manage.py load_wordlist`. A word is translated in a lesson
+    only when its level here is ABOVE the lesson's own level."""
+
+    word = models.CharField(max_length=100, unique=True, db_index=True)
+    cefr_level = models.CharField(max_length=2)
+    translation_ar = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        db_table = "word_levels"
+        ordering = ["word"]
+
+    def __str__(self):
+        return f"{self.word} ({self.cefr_level})"
+
+
+class WordAnnotation(BaseModel):
+    """A tappable word/phrase in a lesson with its Arabic translation.
+
+    Produced by the reprocessing script (`annotate_lessons`). Only annotated
+    words render as tappable in the app; everything else is plain text —
+    never always-visible inline translations (v2 §1.1)."""
+
+    class Kind(models.TextChoices):
+        AUTO = "auto", "Automatic (above lesson level)"
+        IDIOM = "idiom", "Idiom / fixed expression"
+        MULTI_MEANING = "multi_meaning", "Multi-meaning (context-specific)"
+        TARGET_VOCAB = "target_vocab", "Lesson target vocabulary"
+
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="word_annotations"
+    )
+    word = models.CharField(max_length=255, db_index=True)
+    cefr_level = models.CharField(max_length=2, blank=True)
+    translation_ar = models.CharField(max_length=255, blank=True)
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.AUTO)
+    # Ambiguous cases (idioms, multi-meaning, missing translation) that still
+    # need an LLM/human pass before they're final.
+    needs_review = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "word_annotations"
+        unique_together = [("lesson", "word")]
+        ordering = ["lesson", "word"]
+
+    def __str__(self):
+        return f"{self.lesson_id} · {self.word} ({self.kind})"

@@ -4,7 +4,13 @@ from rest_framework import serializers
 
 from apps.exercises.serializers import ANSWER_KEYS
 
-from .models import NewsArticle, NewsExercise
+from .models import Category, NewsArticle, NewsExercise
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ("id", "code", "name_en", "name_ar", "is_default")
 
 
 class NewsExerciseSerializer(serializers.ModelSerializer):
@@ -23,6 +29,7 @@ class NewsExerciseSerializer(serializers.ModelSerializer):
 
 class NewsArticleSerializer(serializers.ModelSerializer):
     exercises = NewsExerciseSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = NewsArticle
@@ -31,17 +38,23 @@ class NewsArticleSerializer(serializers.ModelSerializer):
             "title_en",
             "title_ar",
             "content_short",
+            "body",
+            "content_type",
+            "category",
             "source",
             "image_url",
             "difficulty",
             "country",
+            "is_global",
             "published_date",
             "exercises",
         )
 
 
 class NewsArticleListSerializer(serializers.ModelSerializer):
-    """Archive rows — no exercises, keeps the payload small."""
+    """Feed/archive rows — no exercises/body, keeps the payload small."""
+
+    category = serializers.SlugRelatedField(slug_field="code", read_only=True)
 
     class Meta:
         model = NewsArticle
@@ -49,6 +62,9 @@ class NewsArticleListSerializer(serializers.ModelSerializer):
             "id",
             "title_en",
             "title_ar",
+            "content_short",
+            "content_type",
+            "category",
             "source",
             "image_url",
             "difficulty",

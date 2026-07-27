@@ -4,12 +4,22 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from apps.adminpanel.urls import admin_api_patterns
+from apps.adminpanel.views import LessonImportView
+
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
     path("", include("apps.content.urls")),
     path("exercises/", include("apps.exercises.urls")),
     path("", include("apps.progress.urls")),
     path("news/", include("apps.news.urls")),
+    path("billing/", include("apps.billing.urls")),
+    path("tutor/", include("apps.tutor.urls")),
+    # Content Import API (v2 §5) — API-key authenticated.
+    path("content/lessons/import", LessonImportView.as_view(),
+         name="content-lessons-import"),
+    # Standalone React admin panel API (v2 §4).
+    path("admin-api/", include((admin_api_patterns, "adminpanel"))),
 ]
 
 urlpatterns = [

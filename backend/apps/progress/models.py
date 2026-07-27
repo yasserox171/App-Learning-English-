@@ -27,6 +27,61 @@ class PlacementResult(BaseModel):
         return f"{self.user_id} → {self.assigned_level_id}"
 
 
+class PlacementQuestion(BaseModel):
+    """Independent placement question bank (v2 §1.2) — 60-80 questions
+    spanning A1-C1, NEVER reused from the 180 lessons. CRUD via the admin
+    dashboard."""
+
+    class QType(models.TextChoices):
+        GRAMMAR = "grammar", "Grammar (fill-in-the-blank)"
+        VOCABULARY = "vocabulary", "Vocabulary (meaning in context)"
+        READING = "reading", "Reading comprehension"
+
+    level = models.CharField(max_length=2, db_index=True)  # A1..C1 (C2 optional)
+    qtype = models.CharField(max_length=12, choices=QType.choices)
+    passage = models.TextField(blank=True, help_text="Reading questions only")
+    question = models.TextField()
+    options = models.JSONField(default=list)
+    correct_index = models.PositiveSmallIntegerField()
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "placement_questions"
+        ordering = ["level", "qtype"]
+
+    def __str__(self):
+        return f"[{self.level}/{self.qtype}] {self.question[:50]}"
+
+
+class PlacementSession(BaseModel):
+    """One adaptive placement run (v2 §1.2): threshold-based level walking,
+    5 questions per round, starting at A2."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        ABANDONED = "abandoned", "Abandoned"
+
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="placement_sessions"
+    )
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.ACTIVE
+    )
+    current_level = models.CharField(max_length=2, default="A2")
+    # [{"level": "A2", "question_ids": [...], "correct": 4}, ...]
+    rounds = models.JSONField(default=list)
+    asked_question_ids = models.JSONField(default=list)
+    suggested_level = models.CharField(max_length=2, blank=True)
+
+    class Meta:
+        db_table = "placement_sessions"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id} · {self.status} · {self.current_level}"
+
+
 class Progress(BaseModel):
     """Per-lesson progress for a user."""
 

@@ -1,4 +1,4 @@
-"""Auth views (master prompt §10, Phase 2)."""
+"""Auth views (master prompt §10 + v2 §2.1/§6)."""
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from . import services
 from .models import SocialAuth
 from .serializers import (
     EmailTokenObtainPairSerializer,
@@ -17,6 +18,36 @@ from .serializers import (
 User = get_user_model()
 
 
+def _token_response(user, status_code=status.HTTP_200_OK):
+    refresh = RefreshToken.for_user(user)
+    return Response(
+        {
+            "user": UserSerializer(user).data,
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        },
+        status=status_code,
+    )
+
+
+class GuestView(APIView):
+    """POST /auth/guest — automatic guest account on first app open (v2 §2.1).
+
+    No user input required. Issues the exact same JWT as registered users.
+    Idempotence is the client's job (it stores the token); calling again
+    simply creates another guest.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        country = services.detect_country(
+            request, explicit=str(request.data.get("country", ""))
+        )
+        user = services.create_guest(country=country)
+        return _token_response(user, status.HTTP_201_CREATED)
+
+
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
@@ -24,16 +55,25 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {
-                "user": UserSerializer(user).data,
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            },
-            status=status.HTTP_201_CREATED,
-        )
+
+        requester = request.user if request.user.is_authenticated else None
+        if requester is not None and requester.is_guest:
+            # Guest → registered: convert the SAME row (v2 §2.1). Coins,
+            # interests and progress survive because the pk never changes.
+            data = serializer.validated_data
+            user = services.convert_guest(
+                requester,
+                email=data["email"],
+                password=data["password"],
+                full_name=data.get("full_name", ""),
+            )
+            for field in ("native_language", "learning_goal", "app_language"):
+                if data.get(field):
+                    setattr(user, field, data[field])
+            user.save()
+        else:
+            user = serializer.save()
+        return _token_response(user, status.HTTP_201_CREATED)
 
 
 class LoginView(TokenObtainPairView):
@@ -49,11 +89,37 @@ class MeView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-class _SocialLoginBase(APIView):
-    """Shared logic for social login stubs."""
+class GoogleLoginView(APIView):
+    """POST /auth/social/google {"id_token": "..."} (v2 §6.1).
+
+    The ID token is verified server-side against Google (signature, expiry,
+    audience). Guests calling this endpoint get their row converted in place.
+    """
 
     permission_classes = [permissions.AllowAny]
-    provider = ""
+
+    def post(self, request):
+        token = str(request.data.get("id_token", ""))
+        if not token:
+            return Response(
+                {"detail": "id_token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            info = services.verify_google_id_token(token)
+            requester = request.user if request.user.is_authenticated else None
+            user = services.google_sign_in(token_info=info, requester=requester)
+        except services.GoogleVerificationError as exc:
+            return Response(
+                {"detail": str(exc)}, status=status.HTTP_401_UNAUTHORIZED
+            )
+        return _token_response(user)
+
+
+class AppleLoginView(APIView):
+    """Apple login stub (unchanged in v2 — Google is the active provider)."""
+
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = SocialAuthSerializer(data=request.data)
@@ -62,7 +128,8 @@ class _SocialLoginBase(APIView):
 
         social = (
             SocialAuth.objects.filter(
-                provider=self.provider, provider_uid=data["provider_uid"]
+                provider=SocialAuth.Provider.APPLE,
+                provider_uid=data["provider_uid"],
             )
             .select_related("user")
             .first()
@@ -79,23 +146,7 @@ class _SocialLoginBase(APIView):
             )
             SocialAuth.objects.create(
                 user=user,
-                provider=self.provider,
+                provider=SocialAuth.Provider.APPLE,
                 provider_uid=data["provider_uid"],
             )
-
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {
-                "user": UserSerializer(user).data,
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            }
-        )
-
-
-class GoogleLoginView(_SocialLoginBase):
-    provider = SocialAuth.Provider.GOOGLE
-
-
-class AppleLoginView(_SocialLoginBase):
-    provider = SocialAuth.Provider.APPLE
+        return _token_response(user)

@@ -575,3 +575,115 @@ def test_notification_preferences_roundtrip(auth_client):
         format="json",
     )
     assert resp.status_code == 400
+
+
+# =========================================================================== #
+# v2: adaptive placement (§1.2)
+# =========================================================================== #
+@pytest.fixture
+def placement_bank(db):
+    from apps.progress.models import PlacementQuestion
+
+    # Deterministic bank: disable any seeded questions, correct answer is
+    # always index 0 in the test questions below.
+    PlacementQuestion.objects.update(is_active=False)
+    for level in ("A1", "A2", "B1", "B2", "C1"):
+        for i in range(12):
+            PlacementQuestion.objects.create(
+                level=level, qtype="grammar",
+                question=f"{level} question {i}",
+                options=["right", "wrong", "also wrong"],
+                correct_index=0,
+            )
+    return PlacementQuestion
+
+
+def _answers(questions, *, correct_n):
+    """First correct_n answered correctly (index 0), the rest wrong."""
+    out = {}
+    for i, q in enumerate(questions):
+        out[q["id"]] = 0 if i < correct_n else 1
+    return out
+
+
+def _start(client):
+    resp = client.post(reverse("v1:placement-start"))
+    assert resp.status_code == 201
+    return resp.data
+
+
+def _answer(client, session_id, questions, correct_n):
+    resp = client.post(
+        reverse("v1:placement-answer"),
+        {"session_id": session_id,
+         "answers": _answers(questions, correct_n=correct_n)},
+        format="json",
+    )
+    assert resp.status_code == 200, resp.data
+    return resp.data
+
+
+def test_adaptive_starts_at_a2_with_five_questions(auth_client, placement_bank):
+    client, _ = auth_client
+    data = _start(client)
+    assert data["level"] == "A2"
+    assert len(data["questions"]) == 5
+    # Answers never leak to the client.
+    assert all("correct_index" not in q for q in data["questions"])
+
+
+def test_adaptive_moves_up_on_4_of_5(auth_client, placement_bank):
+    client, _ = auth_client
+    data = _start(client)
+    step = _answer(client, data["session_id"], data["questions"], 4)
+    assert step["completed"] is False
+    assert step["level"] == "B1"
+
+
+def test_adaptive_moves_down_on_3_wrong(auth_client, placement_bank):
+    client, _ = auth_client
+    data = _start(client)
+    step = _answer(client, data["session_id"], data["questions"], 2)
+    assert step["completed"] is False
+    assert step["level"] == "A1"
+
+
+def test_adaptive_settles_at_60_70_percent(auth_client, placement_bank):
+    client, _ = auth_client
+    data = _start(client)
+    step = _answer(client, data["session_id"], data["questions"], 3)
+    assert step["completed"] is True
+    assert step["suggested_level"] == "A2"
+    # Result screen always offers the alternatives (§1.2).
+    assert step["options"]["start_from_beginning"] == "A1"
+    assert "manual_choice" in step["options"]
+
+
+def test_adaptive_settles_on_reversal_at_lower_level(auth_client,
+                                                     placement_bank):
+    """Up from A2→B1, then falls back → settles at A2 (no ping-pong)."""
+    client, _ = auth_client
+    data = _start(client)
+    step = _answer(client, data["session_id"], data["questions"], 5)  # → B1
+    step = _answer(client, data["session_id"], step["questions"], 1)  # ↓ back
+    assert step["completed"] is True
+    assert step["suggested_level"] == "A2"
+
+
+def test_adaptive_settles_at_a1_floor(auth_client, placement_bank):
+    client, _ = auth_client
+    data = _start(client)
+    step = _answer(client, data["session_id"], data["questions"], 0)  # → A1
+    assert step["completed"] is False and step["level"] == "A1"
+    step = _answer(client, data["session_id"], step["questions"], 0)
+    assert step["completed"] is True
+    assert step["suggested_level"] == "A1"
+
+
+def test_adaptive_records_placement_result(auth_client, placement_bank):
+    client, user = auth_client
+    data = _start(client)
+    _answer(client, data["session_id"], data["questions"], 3)
+    result = user.placement_results.select_related("assigned_level").first()
+    assert result is not None
+    assert result.assigned_level.code == "A2"

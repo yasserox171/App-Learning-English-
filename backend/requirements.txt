@@ -12,6 +12,11 @@ tzdata==2024.1
 # Auth
 djangorestframework-simplejwt==5.3.1
 PyJWT==2.8.0
+# Google Sign-In ID-token verification + Play Developer API tokens (v2 §6/§7.5)
+google-auth==2.29.0
+
+# AI providers (v2 §2.2 pipeline + §3 AI Tutor)
+anthropic>=0.40.0
 
 # API utilities
 django-cors-headers==4.3.1

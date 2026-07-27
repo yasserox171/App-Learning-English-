@@ -79,6 +79,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=2, choices=AppLanguage.choices, default=AppLanguage.AR
     )
 
+    # --- v2 expansion (§2.1) --------------------------------------------- #
+    # Guest accounts are real User rows created automatically on first app
+    # open. Registration CONVERTS the row in place (flip is_guest, attach the
+    # login method) — never a new account + data migration.
+    is_guest = models.BooleanField(default=False)
+    # ISO 3166-1 alpha-2, auto-detected (IP header or device locale).
+    country = models.CharField(max_length=2, blank=True)
+    interests = models.ManyToManyField(
+        "news.Category", blank=True, related_name="interested_users"
+    )
+
     is_active = models.BooleanField(default=True)
     # is_staff is required by Django admin; admins/teachers get access in Phase 6.
     is_staff = models.BooleanField(default=False)

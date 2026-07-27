@@ -10,6 +10,8 @@ from .models import (
     Unit,
     Video,
     VocabularyItem,
+    WordAnnotation,
+    WordLevel,
 )
 
 
@@ -53,8 +55,8 @@ class UnitAdmin(admin.ModelAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ("title", "unit", "order")
-    list_filter = ("unit__level",)
+    list_display = ("title", "unit", "order", "status")
+    list_filter = ("unit__level", "status")
     search_fields = ("title",)
     ordering = ("unit", "order")
     inlines = [LessonComponentInline]
@@ -111,3 +113,17 @@ class VocabularyItemAdmin(admin.ModelAdmin):
 @admin.register(TextBlock)
 class TextBlockAdmin(admin.ModelAdmin):
     list_display = ("component",)
+
+
+@admin.register(WordLevel)
+class WordLevelAdmin(admin.ModelAdmin):
+    list_display = ("word", "cefr_level", "translation_ar")
+    list_filter = ("cefr_level",)
+    search_fields = ("word",)
+
+
+@admin.register(WordAnnotation)
+class WordAnnotationAdmin(admin.ModelAdmin):
+    list_display = ("word", "lesson", "kind", "cefr_level", "needs_review")
+    list_filter = ("kind", "needs_review", "cefr_level")
+    search_fields = ("word", "lesson__title")
