@@ -6,7 +6,7 @@ on:
       api_base_url:
         description: 'Backend API base URL baked into the APK'
         required: false
-        default: 'http://84.8.223.62:8000/api/v1'
+        default: 'http://84.8.223.62/api/v1'
       google_web_client_id:
         description: 'Google Sign-In WEB OAuth client ID (optional)'
         required: false
@@ -50,7 +50,7 @@ jobs:
       - name: Build APK
         run: |
           flutter build apk --release \
-            --dart-define=API_BASE_URL='${{ github.event.inputs.api_base_url || 'http://84.8.223.62:8000/api/v1' }}' \
+            --dart-define=API_BASE_URL='${{ github.event.inputs.api_base_url || 'http://84.8.223.62/api/v1' }}' \
             --dart-define=GOOGLE_WEB_CLIENT_ID='${{ github.event.inputs.google_web_client_id }}' \
             --dart-define=WHATSAPP_NUMBER='${{ github.event.inputs.whatsapp_number }}'
           mv build/app/outputs/flutter-apk/app-release.apk \
@@ -84,5 +84,5 @@ jobs:
             echo ""
             echo "**Direct download:** https://github.com/$GITHUB_REPOSITORY/releases/download/latest-apk/focus-languages.apk"
             echo ""
-            echo "API baked in: \`${{ github.event.inputs.api_base_url || 'http://84.8.223.62:8000/api/v1' }}\`"
+            echo "API baked in: \`${{ github.event.inputs.api_base_url || 'http://84.8.223.62/api/v1' }}\`"
           } >> "$GITHUB_STEP_SUMMARY"

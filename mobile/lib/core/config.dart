@@ -1,9 +1,12 @@
 /// App-wide configuration.
 class AppConfig {
   /// Base URL of the backend API. Override with --dart-define=API_BASE_URL=...
+  ///
+  /// Port 80 (nginx), not 8000: the Oracle Cloud security list only exposes
+  /// 80/443, so :8000 is unreachable from outside the VM.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://84.8.223.62:8000/api/v1',
+    defaultValue: 'http://84.8.223.62/api/v1',
   );
 
   /// Where friends can download the app (used in share messages).
