@@ -26,6 +26,10 @@ services:
       DATABASE_URL: postgres://lms:lms@db:5432/lms
       DJANGO_DEBUG: "True"
       DJANGO_SECRET_KEY: docker-dev-key
+      # nginx forwards the original Host (e.g. the server's public IP), so it
+      # must be allowed or Django answers 400 DisallowedHost to every request
+      # coming from the mobile app.
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,84.8.223.62,lms.centrefocus.ma,centrefocus.ma
     depends_on:
       db:
         condition: service_healthy
