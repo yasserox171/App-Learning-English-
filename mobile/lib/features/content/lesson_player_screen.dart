@@ -9,6 +9,7 @@ import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/feedback_fx.dart';
 import '../../core/widgets/markdown_text.dart';
+import '../../core/widgets/selective_text.dart';
 import '../achievements/achievements_screen.dart';
 import '../achievements/data/achievements_repository.dart';
 import '../exercises/data/exercise_repository.dart';
@@ -132,10 +133,15 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
   }
 
   Widget _buildPage(LessonPageSpec spec, String backdrop,
-      {VoidCallback? onAdvance}) {
+      {VoidCallback? onAdvance,
+      List<WordAnnotation> annotations = const []}) {
     switch (spec.kind) {
       case 'text':
-        return MarkdownText(spec.text ?? '');
+        // Tap-to-reveal only when this lesson has above-level words to
+        // translate; otherwise plain markdown keeps its formatting (§1.1).
+        return annotations.isEmpty
+            ? MarkdownText(spec.text ?? '')
+            : SelectiveText(spec.text ?? '', annotations: annotations);
       case 'vocab_card':
         return VocabularyCard(item: spec.vocabItem!);
       case 'vocab_quiz':
@@ -263,6 +269,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> {
                     child: _buildPage(
                       flow.pages[i],
                       flow.thumbnail,
+                      annotations: l.annotations,
                       onAdvance: i < total - 1
                           ? () => _controller.nextPage(
                                 duration: const Duration(milliseconds: 300),

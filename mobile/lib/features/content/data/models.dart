@@ -154,12 +154,41 @@ class LessonComponent {
       );
 }
 
+/// A word the backend flagged as above the lesson's level — the only kind of
+/// word that gets a tap-to-reveal translation (v2 §1.1).
+class WordAnnotation {
+  WordAnnotation({
+    required this.word,
+    required this.translationAr,
+    required this.cefrLevel,
+    required this.kind,
+  });
+
+  final String word;
+  final String translationAr;
+  final String cefrLevel;
+  final String kind; // above_level | idiom | context | target_term
+
+  factory WordAnnotation.fromJson(Map<String, dynamic> j) => WordAnnotation(
+        word: (j['word'] ?? '') as String,
+        translationAr: (j['translation_ar'] ?? '') as String,
+        cefrLevel: (j['cefr_level'] ?? '') as String,
+        kind: (j['kind'] ?? '') as String,
+      );
+}
+
 class LessonDetail {
-  LessonDetail({required this.id, required this.title, required this.components});
+  LessonDetail({
+    required this.id,
+    required this.title,
+    required this.components,
+    this.annotations = const [],
+  });
 
   final String id;
   final String title;
   final List<LessonComponent> components;
+  final List<WordAnnotation> annotations;
 
   factory LessonDetail.fromJson(Map<String, dynamic> j) => LessonDetail(
         id: j['id'],
@@ -167,6 +196,10 @@ class LessonDetail {
         components: (j['components'] as List)
             .map((c) => LessonComponent.fromJson(c as Map<String, dynamic>))
             .toList(),
+        annotations: [
+          for (final a in (j['annotations'] as List? ?? const []))
+            WordAnnotation.fromJson(a as Map<String, dynamic>),
+        ],
       );
 }
 

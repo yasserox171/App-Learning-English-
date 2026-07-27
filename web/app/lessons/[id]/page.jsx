@@ -6,48 +6,81 @@ import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
 import { useSession } from '../../../components/SessionProvider';
 
-/** Lesson reader. Words above the lesson's own CEFR level are the only ones
- *  marked tappable — tap to reveal the Arabic translation (v2 §1.1). */
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Lesson reader. Terms above the lesson's own CEFR level are the only ones
+ * marked tappable — tap to reveal the Arabic translation (v2 §1.1).
+ * Multi-word entries (idioms, "boarding pass") are matched longest-first so a
+ * fixed expression reveals as one unit rather than word by word.
+ */
 function SelectiveText({ text, annotations }) {
   const [revealed, setRevealed] = useState({});
+
   const lookup = new Map(
-    (annotations || []).map((a) => [a.word.toLowerCase(), a])
+    (annotations || [])
+      .filter((a) => a.word?.trim())
+      .map((a) => [a.word.toLowerCase(), a])
   );
 
-  const parts = String(text).split(/(\b[\w']+\b)/g);
+  const source = String(text);
+  const terms = [...lookup.keys()].sort((a, b) => b.length - a.length);
+  if (terms.length === 0) {
+    return (
+      <p dir="ltr" style={{ textAlign: 'start', whiteSpace: 'pre-wrap' }}>
+        {source}
+      </p>
+    );
+  }
+
+  const pattern = new RegExp(`\\b(?:${terms.map(escapeRe).join('|')})\\b`, 'gi');
+  const nodes = [];
+  let cursor = 0;
+  let occurrence = 0;
+
+  for (const match of source.matchAll(pattern)) {
+    if (match.index > cursor) {
+      nodes.push(<span key={`t${cursor}`}>{source.slice(cursor, match.index)}</span>);
+    }
+    cursor = match.index + match[0].length;
+
+    const hit = lookup.get(match[0].toLowerCase());
+    if (!hit) {
+      nodes.push(<span key={`p${cursor}`}>{match[0]}</span>);
+      continue;
+    }
+    const index = occurrence++;
+    nodes.push(
+      <span key={`a${index}`}>
+        <button
+          onClick={() => setRevealed((prev) => ({ ...prev, [index]: !prev[index] }))}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            font: 'inherit',
+            color: 'inherit',
+            borderBottom: '1.5px dotted var(--brand)',
+          }}
+        >
+          {match[0]}
+        </button>
+        {revealed[index] && (
+          <span dir="rtl" style={{ color: 'var(--brand)', fontWeight: 600 }}>
+            {' '}
+            ({hit.translation_ar})
+          </span>
+        )}
+      </span>
+    );
+  }
+  if (cursor < source.length) {
+    nodes.push(<span key="tail">{source.slice(cursor)}</span>);
+  }
+
   return (
     <p dir="ltr" style={{ textAlign: 'start', whiteSpace: 'pre-wrap' }}>
-      {parts.map((part, i) => {
-        const hit = lookup.get(part.toLowerCase());
-        if (!hit) return <span key={i}>{part}</span>;
-        return (
-          <span key={i}>
-            <button
-              onClick={() =>
-                setRevealed((prev) => ({ ...prev, [i]: !prev[i] }))
-              }
-              style={{
-                border: 'none',
-                background: 'none',
-                padding: 0,
-                color: 'inherit',
-                borderBottom: '1.5px dotted var(--brand)',
-              }}
-            >
-              {part}
-            </button>
-            {revealed[i] && (
-              <span
-                dir="rtl"
-                style={{ color: 'var(--brand)', fontWeight: 600 }}
-              >
-                {' '}
-                ({hit.translation_ar})
-              </span>
-            )}
-          </span>
-        );
-      })}
+      {nodes}
     </p>
   );
 }
