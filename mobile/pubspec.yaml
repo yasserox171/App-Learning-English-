@@ -49,6 +49,14 @@ dependencies:
   # Google Sign-In (v2 §6.1) — ID token verified server-side via google-auth.
   google_sign_in: ^6.2.1
 
+dependency_overrides:
+  # path_provider_android 2.3.0+ depends on jni, whose Groovy build script
+  # calls kotlin() in a way this project's AGP 9 / Gradle 9 / Kotlin 2.3
+  # setup rejects — "Could not find method kotlin() on project ':jni'" —
+  # which fails `flutter build apk`. 2.2.23 is the last jni-free release.
+  # Revisit once jni ships an AGP 9 compatible build script.
+  path_provider_android: 2.2.23
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

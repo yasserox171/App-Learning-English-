@@ -33,7 +33,10 @@ mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/build/
 mobile/.packages
-mobile/pubspec.lock
+# pubspec.lock IS committed: this is an application, not a library, so CI must
+# build the exact dependency set that was tested. Leaving it out let a
+# transitive bump (path_provider_android 2.3.x -> jni) break the APK build on
+# a day when nothing in this repo had changed.
 
 # IDE / OS
 .idea/
