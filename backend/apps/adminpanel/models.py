@@ -112,6 +112,9 @@ class ImportLog(BaseModel):
     content_title = models.CharField(max_length=255, blank=True)
     success = models.BooleanField(default=True)
     detail = models.TextField(blank=True)
+    # created | skipped | replaced — so idempotent retries are queryable
+    # rather than buried in free-text detail. Blank for failed imports.
+    action = models.CharField(max_length=12, blank=True)
 
     class Meta:
         db_table = "import_logs"

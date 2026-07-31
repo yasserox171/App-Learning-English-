@@ -13,12 +13,20 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.billing import services as billing_services
 from apps.billing.models import PremiumGrant
-from apps.content.importer import ImportValidationError, import_lesson
+from apps.content.importer import (
+    ACTION_CREATED,
+    ON_DUPLICATE_SKIP,
+    ImportValidationError,
+    import_lesson,
+)
+from apps.common.services import video_service
+from apps.content.media_upload import MediaUploadError, store_upload
 from apps.content.models import Lesson, Level, Unit
 from apps.content.serializers import LessonDetailSerializer
 from apps.news.models import NewsArticle
@@ -642,11 +650,22 @@ class LessonImportView(APIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Optional idempotency controls — absent means the original
+        # always-create behaviour. Read, not popped: validate_lesson_json()
+        # is the single place these are checked, and it needs to see them.
+        idempotency_key = str(data.get("idempotency_key", "") or "")
+        on_duplicate = data.get("on_duplicate") or ON_DUPLICATE_SKIP
+
         target_status = (
             Lesson.Status.PUBLISHED if mode == "direct" else Lesson.Status.DRAFT
         )
         try:
-            lesson = import_lesson(data, status=target_status)
+            lesson, action = import_lesson(
+                data,
+                status=target_status,
+                idempotency_key=idempotency_key,
+                on_duplicate=on_duplicate,
+            )
         except ImportValidationError as exc:
             ImportLog.objects.create(
                 api_key=api_key, publish_mode=mode, content_id="",
@@ -657,20 +676,78 @@ class LessonImportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Every import is logged; direct publishes are the critical trail (§5.1).
+        # Every import is logged — skips included, so a retry storm is
+        # visible — and direct publishes are the critical trail (§5.1).
         ImportLog.objects.create(
             api_key=api_key,
             publish_mode=mode,
             content_id=str(lesson.id),
             content_title=lesson.title,
             success=True,
+            action=action,
         )
+        body = {
+            "lesson_id": str(lesson.id),
+            "status": lesson.status,
+            "publish_mode": mode,
+            "review_required": lesson.status == Lesson.Status.DRAFT,
+            "action": action,
+            "duplicate": action != ACTION_CREATED,
+        }
+        # 201 only when a row was actually created; a resolved duplicate is a
+        # 200 so retrying pipelines can tell the two apart.
+        return Response(
+            body,
+            status=(
+                status.HTTP_201_CREATED
+                if action == ACTION_CREATED
+                else status.HTTP_200_OK
+            ),
+        )
+
+
+class MediaUploadView(APIView):
+    """POST /api/v1/content/media/upload  (Bearer <api_key>).
+
+    multipart/form-data: file (required), kind (video|image|audio, required),
+    filename (optional — only its extension is honoured).
+
+    Same API-key auth as the lesson import. Any valid key may upload: storing
+    bytes publishes nothing, and the direct_publish tier still gates whether
+    the lesson referencing them goes live.
+    """
+
+    authentication_classes = [APIKeyAuthentication]
+    permission_classes = [HasValidAPIKey]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        uploaded = request.FILES.get("file")
+        if uploaded is None:
+            return Response(
+                {"detail": "'file' is required (multipart/form-data)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        kind = str(request.data.get("kind", "")).strip().lower()
+        filename = str(request.data.get("filename", "") or "")
+
+        try:
+            result = store_upload(uploaded, kind=kind, filename=filename)
+        except MediaUploadError as exc:
+            return Response(
+                {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
+            )
+
         return Response(
             {
-                "lesson_id": str(lesson.id),
-                "status": lesson.status,
-                "publish_mode": mode,
-                "review_required": mode == "draft",
+                # Relative key — what Video.storage_key expects.
+                "storage_key": result["storage_key"],
+                # Absolute URL — what the vocabulary URLFields require.
+                "url": video_service.media_url(result["storage_key"]),
+                "kind": kind,
+                "size": result["size"],
+                "sha256": result["sha256"],
+                "deduplicated": result["deduplicated"],
             },
             status=status.HTTP_201_CREATED,
         )

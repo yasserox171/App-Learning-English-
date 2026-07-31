@@ -19,6 +19,16 @@ class VideoService(ABC):
         """Return a playback URL for the given Video instance."""
         raise NotImplementedError
 
+    @abstractmethod
+    def media_url(self, storage_key: str) -> str:
+        """Absolute URL for any storage key (video, image or audio).
+
+        Vocabulary image_url/audio_url are URLFields and reject relative
+        paths, so the upload API has to hand back an absolute URL — built
+        from the same base as playback so there is only ever one setting.
+        """
+        raise NotImplementedError
+
 
 class LocalVideoService(VideoService):
     """Default MVP implementation: build a URL from the storage key.
@@ -28,7 +38,10 @@ class LocalVideoService(VideoService):
     """
 
     def get_playback_url(self, video) -> str:
-        key = video.storage_key or ""
+        return self.media_url(video.storage_key or "")
+
+    def media_url(self, storage_key: str) -> str:
+        key = (storage_key or "").lstrip("/")
         # Absolute URLs (e.g. imported media) are used as-is.
         if key.startswith("http://") or key.startswith("https://"):
             return key

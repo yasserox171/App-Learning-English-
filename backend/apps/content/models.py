@@ -67,10 +67,22 @@ class Lesson(BaseModel):
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.PUBLISHED
     )
+    # Caller-supplied idempotency key for the import API. Blank for everything
+    # created by hand or by the seed, so the uniqueness rule below skips them.
+    import_ref = models.CharField(max_length=255, blank=True, db_index=True)
 
     class Meta:
         db_table = "lessons"
         ordering = ["unit", "order"]
+        constraints = [
+            # Conditional so the many existing rows with import_ref="" stay
+            # legal — only real keys have to be unique.
+            models.UniqueConstraint(
+                fields=["import_ref"],
+                condition=~models.Q(import_ref=""),
+                name="uniq_lesson_import_ref",
+            ),
+        ]
 
     def __str__(self):
         return self.title

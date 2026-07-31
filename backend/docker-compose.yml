@@ -30,6 +30,9 @@ services:
       # must be allowed or Django answers 400 DisallowedHost to every request
       # coming from the mobile app.
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,84.8.223.62,lms.centrefocus.ma,centrefocus.ma
+      # Absolute base for uploaded media. The localhost default is unreachable
+      # from a phone or browser; nginx serves /media/ on port 80.
+      VIDEO_PLAYBACK_BASE_URL: http://84.8.223.62/media/
     depends_on:
       db:
         condition: service_healthy
@@ -54,6 +57,11 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ../admin/dist:/srv/admin:ro
+      # nginx.conf aliases /app/media/; without this mount that path does not
+      # exist in the nginx container and every uploaded file 404s even though
+      # Django wrote it successfully. Same directory the web service sees via
+      # its `.:/app` mount, so MEDIA_ROOT and the alias now agree.
+      - ./media:/app/media:ro
     depends_on:
       - web
       - webapp

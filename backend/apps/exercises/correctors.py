@@ -74,8 +74,11 @@ class FillBlankCorrector(Corrector):
 @register("matching")
 class MatchingCorrector(Corrector):
     def check(self, content, answer):
+        # .get() rather than [] : a pair missing a side is simply unmatchable,
+        # never a KeyError that would 500 a student mid-lesson.
         expected = {
-            (_norm(p["left"]), _norm(p["right"])) for p in content.get("pairs", [])
+            (_norm(p.get("left", "")), _norm(p.get("right", "")))
+            for p in content.get("pairs", [])
         }
         given = {
             (_norm(p.get("left")), _norm(p.get("right")))

@@ -79,6 +79,30 @@ def test_matching_corrector(seeded):
 
 
 @pytest.mark.django_db
+def test_matching_corrector_survives_malformed_pairs(seeded):
+    """A pair missing a side must not raise — the learner would otherwise get
+    a 500 mid-lesson. It simply can't be matched."""
+    c = get_corrector("matching")
+    content = {"pairs": [
+        {"left": "A", "right": "1"},
+        {"left": "B"},              # no 'right'
+        {"right": "3"},             # no 'left'
+        {},                         # empty
+    ]}
+    ok, fraction = c.check(content, {"pairs": [{"left": "A", "right": "1"}]})
+    assert ok is False
+    # 4 declared pairs, but {"left":"B"} and {} both normalise to ("b","") /
+    # ("","") so the expected set holds 3 distinct entries; 1 is matched.
+    assert 0 < fraction < 1
+
+    # A malformed pair on the answer side is equally safe.
+    ok, _ = c.check(
+        {"pairs": [{"left": "A", "right": "1"}]}, {"pairs": [{"left": "A"}]}
+    )
+    assert ok is False
+
+
+@pytest.mark.django_db
 def test_final_test_aggregates(seeded):
     ex = _ex("final_test")
     ids = ex.content["exercise_ids"]

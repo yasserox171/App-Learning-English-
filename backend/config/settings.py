@@ -202,11 +202,19 @@ else:
     CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # --------------------------------------------------------------------------- #
-# Video service (hosting deferred — see master prompt §7)
+# Media service (hosting deferred — see master prompt §7)
 # --------------------------------------------------------------------------- #
+# Base for every stored asset. Storage keys are relative to MEDIA_ROOT and
+# carry their own kind prefix ("videos/x.mp4", "images/y.png"), so this must
+# end at /media/ — NOT /media/videos/.
 VIDEO_PLAYBACK_BASE_URL = env(
-    "VIDEO_PLAYBACK_BASE_URL", default="http://localhost:8000/media/videos/"
+    "VIDEO_PLAYBACK_BASE_URL", default="http://localhost:8000/media/"
 )
+
+# Upload ceilings per kind, in MB (content import media API).
+MEDIA_MAX_VIDEO_MB = env.int("MEDIA_MAX_VIDEO_MB", default=200)
+MEDIA_MAX_IMAGE_MB = env.int("MEDIA_MAX_IMAGE_MB", default=10)
+MEDIA_MAX_AUDIO_MB = env.int("MEDIA_MAX_AUDIO_MB", default=25)
 
 # --------------------------------------------------------------------------- #
 # Social auth (v2 §6 — verified server-side via google-auth)

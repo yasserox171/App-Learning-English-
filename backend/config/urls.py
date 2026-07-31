@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.adminpanel.urls import admin_api_patterns
-from apps.adminpanel.views import LessonImportView
+from apps.adminpanel.views import LessonImportView, MediaUploadView
 
 api_v1_patterns = [
     path("auth/", include("apps.users.urls")),
@@ -18,6 +18,8 @@ api_v1_patterns = [
     # Content Import API (v2 §5) — API-key authenticated.
     path("content/lessons/import", LessonImportView.as_view(),
          name="content-lessons-import"),
+    path("content/media/upload", MediaUploadView.as_view(),
+         name="content-media-upload"),
     # Standalone React admin panel API (v2 §4).
     path("admin-api/", include((admin_api_patterns, "adminpanel"))),
 ]
